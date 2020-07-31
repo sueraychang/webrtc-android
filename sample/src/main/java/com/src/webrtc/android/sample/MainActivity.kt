@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+        viewModel = ViewModelProvider(this, ViewModelFactory.getInstance(application)).get(MainViewModel::class.java)
 
         binding.apply {
             createRoom.setOnClickListener {
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d(TAG, "on joinRoom click")
                 createRoom.isEnabled = false
                 if (isPermissionsGranted()) {
-                    viewModel.joinRoom()
+                    viewModel.joinRoom(ROOM_NAME)
                 } else {
                     requestPermissions()
                 }
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
                 if (binding.createRoom.isEnabled) {
                     viewModel.createRoom()
                 } else {
-                    viewModel.joinRoom()
+                    viewModel.joinRoom(ROOM_NAME)
                 }
             } else {
                 binding.createRoom.isEnabled = true
@@ -113,7 +113,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "[wa]MainActivity"
+        private const val TAG = "[rtc]MainActivity"
+
+        private const val ROOM_NAME = "1d426c42"
 
         private const val PERMISSION_REQUEST_CODE = 100
         private val PERMISSIONS = arrayOf(

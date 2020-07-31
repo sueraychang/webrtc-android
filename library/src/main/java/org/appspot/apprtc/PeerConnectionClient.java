@@ -84,11 +84,11 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStateCallback;
  * All PeerConnectionEvents callbacks are invoked from the same looper thread.
  * This class is a singleton.
  */
-public class PeerConnectionClient {
+public abstract class PeerConnectionClient {
   public static final String VIDEO_TRACK_ID = "ARDAMSv0";
   public static final String AUDIO_TRACK_ID = "ARDAMSa0";
   public static final String VIDEO_TRACK_TYPE = "video";
-  private static final String TAG = "PCRTCClient";
+  private static final String TAG = "[rtc]PCRTCClient";
   private static final String VIDEO_CODEC_VP8 = "VP8";
   private static final String VIDEO_CODEC_VP9 = "VP9";
   private static final String VIDEO_CODEC_H264 = "H264";
@@ -116,18 +116,21 @@ public class PeerConnectionClient {
   // Executor thread is started once in private ctor and is used for all
   // peer connection API calls to ensure new peer connection factory is
   // created on the same thread as previously destroyed factory.
-  private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+  // +++ Robin: new the executor from outside +++
+  //private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+  protected ExecutorService executor;
+  // --- Robin: new the executor from outside ---
 
   private final PCObserver pcObserver = new PCObserver();
   private final SDPObserver sdpObserver = new SDPObserver();
   private final Timer statsTimer = new Timer();
   private final EglBase rootEglBase;
   private final Context appContext;
-  private final PeerConnectionParameters peerConnectionParameters;
-  private final PeerConnectionEvents events;
+  protected PeerConnectionParameters peerConnectionParameters;
+  private PeerConnectionEvents events;
 
   @Nullable
-  private PeerConnectionFactory factory;
+  protected PeerConnectionFactory factory;
   @Nullable
   private PeerConnection peerConnection;
   @Nullable
@@ -155,7 +158,7 @@ public class PeerConnectionClient {
   @Nullable
   private SessionDescription localSdp; // either offer or answer SDP
   @Nullable
-  private VideoCapturer videoCapturer;
+  protected VideoCapturer videoCapturer;
   // enableVideo is set to true if video should be rendered and sent.
   private boolean renderVideo = true;
   @Nullable
@@ -177,6 +180,45 @@ public class PeerConnectionClient {
   // Implements the WebRtcAudioRecordSamplesReadyCallback interface and writes
   // recorded audio samples to an output file.
   @Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
+
+  // +++ Robin: customization +++
+  protected boolean isAudioTrackEnabled = false;
+  protected boolean isVideoTrackEnabled = false;
+  protected boolean isDataTrackEnabled = false;
+
+  public void copyMemberVariable(final PeerConnectionClient client) {
+    executor.execute(() -> {
+      factory = client.factory;
+      preferIsac = client.preferIsac;
+      sdpMediaConstraints = copyMediaConstraint(client.sdpMediaConstraints);
+      peerConnectionParameters = client.peerConnectionParameters;
+      queuedRemoteCandidates = client.queuedRemoteCandidates;
+      localAudioTrack = client.localAudioTrack;
+      isAudioTrackEnabled = client.isAudioTrackEnabled;
+      isVideoTrackEnabled = client.isVideoTrackEnabled;
+      isDataTrackEnabled = client.isDataTrackEnabled;
+    });
+  }
+
+  private MediaConstraints copyMediaConstraint(MediaConstraints mediaConstraints) {
+    MediaConstraints mc = new MediaConstraints();
+    for (MediaConstraints.KeyValuePair pair : mediaConstraints.mandatory) {
+      mc.mandatory.add(new MediaConstraints.KeyValuePair(pair.getKey(), pair.getValue()));
+    }
+    for (MediaConstraints.KeyValuePair pair : mediaConstraints.optional) {
+      mc.optional.add(new MediaConstraints.KeyValuePair(pair.getKey(), pair.getValue()));
+    }
+    return mc;
+  }
+
+  public abstract void createLocalAudioTracks();
+
+  public abstract void createLocalVideoTracks();
+
+  public void setPeerConnectionEvents(PeerConnectionEvents events) {
+    this.events = events;
+  }
+  // --- Robin: customization ---
 
   /**
    * Peer connection parameters.
@@ -323,10 +365,16 @@ public class PeerConnectionClient {
    * ownership of |eglBase|.
    */
   public PeerConnectionClient(Context appContext, EglBase eglBase,
-      PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events) {
+      PeerConnectionParameters peerConnectionParameters, PeerConnectionEvents events,
+                              // +++ Robin: new the executor from outside +++
+                              ExecutorService executor) {
+                              // --- Robin: new the executor from outside ---
     this.rootEglBase = eglBase;
     this.appContext = appContext;
     this.events = events;
+    // +++ Robin: new the executor from outside +++
+    this.executor = executor;
+    // --- Robin: new the executor from outside ---
     this.peerConnectionParameters = peerConnectionParameters;
     this.dataChannelEnabled = peerConnectionParameters.dataChannelParameters != null;
 
@@ -350,17 +398,27 @@ public class PeerConnectionClient {
     if (factory != null) {
       throw new IllegalStateException("PeerConnectionFactory has already been constructed");
     }
-    executor.execute(() -> createPeerConnectionFactoryInternal(options));
+    //    executor.execute(() -> createPeerConnectionFactoryInternal(options));
+    // +++ Robin: Customize createPeerConnectionFactory +++
+    executor.execute(() -> {
+      createPeerConnectionFactoryInternal(options);
+      createMediaConstraintsInternal();
+      createLocalAudioTracks();
+      createLocalVideoTracks();
+    });
+    // --- Robin: Customize createPeerConnectionFactory ---
   }
 
-  public void createPeerConnection(final VideoSink localRender, final VideoSink remoteSink,
-      final VideoCapturer videoCapturer, final SignalingParameters signalingParameters) {
-    if (peerConnectionParameters.videoCallEnabled && videoCapturer == null) {
-      Log.w(TAG, "Video call enabled but no video capturer provided.");
-    }
-    createPeerConnection(
-        localRender, Collections.singletonList(remoteSink), videoCapturer, signalingParameters);
-  }
+  // +++ Robin: We don't need this overload +++
+//  public void createPeerConnection(final VideoSink localRender, final VideoSink remoteSink,
+//      final VideoCapturer videoCapturer, final SignalingParameters signalingParameters) {
+//    if (peerConnectionParameters.videoCallEnabled && videoCapturer == null) {
+//      Log.w(TAG, "Video call enabled but no video capturer provided.");
+//    }
+//    createPeerConnection(
+//        localRender, Collections.singletonList(remoteSink), videoCapturer, signalingParameters);
+//  }
+  // --- Robin: We don't need this overload ---
 
   public void createPeerConnection(final VideoSink localRender, final List<VideoSink> remoteSinks,
       final VideoCapturer videoCapturer, final SignalingParameters signalingParameters) {
@@ -387,6 +445,16 @@ public class PeerConnectionClient {
   public void close() {
     executor.execute(this ::closeInternal);
   }
+
+  // +++ Robin: split close function for LocalPeer & RemotePeer +++
+  public void remotePeerClose() {
+    executor.execute(() -> remotePeerCloseInternal());
+  }
+
+  public void localPeerClose() {
+    executor.execute(() -> localPeerCloseInternal());
+  }
+  // --- Robin: split close function for LocalPeer & RemotePeer ---
 
   private boolean isVideoCallEnabled() {
     return peerConnectionParameters.videoCallEnabled && videoCapturer != null;
@@ -740,6 +808,94 @@ public class PeerConnectionClient {
     PeerConnectionFactory.stopInternalTracingCapture();
     PeerConnectionFactory.shutdownInternalTracer();
   }
+
+  // +++ Robin: split close function for LocalPeer & RemotePeer +++
+  private void localPeerCloseInternal() {
+    if (factory != null && peerConnectionParameters.aecDump) {
+      factory.stopAecDump();
+    }
+
+    Log.d(TAG, "Closing audio source.");
+    if (audioSource != null) {
+      audioSource.dispose();
+      audioSource = null;
+    }
+    Log.d(TAG, "Stopping capture.");
+    if (videoCapturer != null) {
+      try {
+        videoCapturer.stopCapture();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      videoCapturerStopped = true;
+      videoCapturer.dispose();
+      videoCapturer = null;
+    }
+    Log.d(TAG, "Closing video source.");
+    if (videoSource != null) {
+      videoSource.dispose();
+      videoSource = null;
+    }
+    if (surfaceTextureHelper != null) {
+      surfaceTextureHelper.dispose();
+      surfaceTextureHelper = null;
+    }
+    if (saveRecordedAudioToFile != null) {
+      Log.d(TAG, "Closing audio file for recorded input audio.");
+      saveRecordedAudioToFile.stop();
+      saveRecordedAudioToFile = null;
+    }
+    localRender = null;
+
+    Log.d(TAG, "Closing peer connection factory.");
+    if (factory != null) {
+      factory.dispose();
+      factory = null;
+    }
+
+    rootEglBase.release();
+    PeerConnectionFactory.stopInternalTracingCapture();
+    PeerConnectionFactory.shutdownInternalTracer();
+
+    executor.shutdown();
+    Log.d(TAG, "localPeerClose done");
+  }
+
+  private void remotePeerCloseInternal() {
+    Log.d(TAG, "Closing peer connection.");
+    if (statsTimer != null) {
+      statsTimer.cancel();
+    }
+
+    if (dataChannel != null) {
+      dataChannel.dispose();
+      dataChannel = null;
+    }
+    if (rtcEventLog != null) {
+      // RtcEventLog should stop before the peer connection is disposed.
+      rtcEventLog.stop();
+      rtcEventLog = null;
+    }
+    if (peerConnection != null) {
+      peerConnection.dispose();
+      peerConnection = null;
+    }
+
+    if (saveRecordedAudioToFile != null) {
+      Log.d(TAG, "Closing audio file for recorded input audio.");
+      saveRecordedAudioToFile.stop();
+      saveRecordedAudioToFile = null;
+    }
+
+    Log.d(TAG, "Closing peer connection done.");
+    if (events != null) {
+      events.onPeerConnectionClosed();
+    }
+    events = null;
+
+    Log.d(TAG, "remotePeerClose done");
+  }
+  // --- Robin: split close function for LocalPeer & RemotePeer ---
 
   public boolean isHDVideo() {
     return isVideoCallEnabled() && videoWidth * videoHeight >= 1280 * 720;

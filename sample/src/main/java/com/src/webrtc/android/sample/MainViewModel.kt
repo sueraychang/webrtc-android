@@ -1,14 +1,19 @@
 package com.src.webrtc.android.sample
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
-import com.src.webrtc.android.sample.data.Peer
-import com.src.webrtc.android.sample.data.Room
+import com.src.webrtc.android.*
+import com.src.webrtc.android.sample.data.*
+import org.webrtc.IceCandidate
+import java.nio.ByteBuffer
 import java.util.*
 
-class MainViewModel : ViewModel() {
+class MainViewModel(
+    private val context: Application
+) : AndroidViewModel(context) {
 
     private val firestore = FirebaseFirestore.getInstance()
 
@@ -16,94 +21,89 @@ class MainViewModel : ViewModel() {
 
     private lateinit var peerJoin: DocumentReference
 
-    private lateinit var room: Room
+    private lateinit var roomInfo: RoomInfo
 
-    private lateinit var self: Peer
+    private lateinit var self: PeerInfo
+
+    private lateinit var signaling: SignalingManager
+
+    private lateinit var roomManager: RoomManager
 
     private var isRoomCreatedByMe = false
 
     fun createRoom() {
         Log.d(TAG, "createRoom")
 
-        room = Room(UUID.randomUUID().toString().substring(0,8), System.currentTimeMillis())
-        self = Peer(UUID.randomUUID().toString(), "Harry")
+        roomInfo =
+            RoomInfo(UUID.randomUUID().toString().substring(0, 8), System.currentTimeMillis())
+        self = PeerInfo(UUID.randomUUID().toString(), "Harry")
 
-        Log.d(TAG, "room name: ${room.name}")
+        roomManager = RoomManager(context, roomListener, remotePeerListener, remoteDataListener)
+        roomManager.connect(roomInfo.name, self.id, ICE_URLS)
 
-        roomRef = firestore.collection(COLLECTION_ROOMS).document(room.name)
-        roomRef.set(room)
-
+        Log.d(TAG, "room name: ${roomInfo.name}")
         isRoomCreatedByMe = true
-//        roomRef.collection(COLLECTION_PEER_JOIN).add(self)
 
-        registerPeerJoinListener()
-        registerPeerLeaveListener()
+        signaling = SignalingManager(signalingListener)
+        signaling.createRoom(roomInfo)
     }
 
-    fun joinRoom() {
+    fun joinRoom(roomName: String) {
         Log.d(TAG, "joinRoom")
+        self = PeerInfo(UUID.randomUUID().toString(), "Hermione")
 
-        self = Peer(UUID.randomUUID().toString(), "Hermione")
-        roomRef = firestore.collection(COLLECTION_ROOMS).document("71c7a1bb")
-        roomRef.get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    Log.d(TAG, "DocumentSnapshot data: ${document.data}")
-                    roomRef.collection(COLLECTION_PEER_JOIN).add(self)
-                } else {
-                    Log.e(TAG, "No such document")
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e(TAG, "get failed with ", exception)
-            }
+        roomManager = RoomManager(context, roomListener, remotePeerListener, remoteDataListener)
+        roomManager.connect(roomName, self.id, ICE_URLS)
 
-        registerPeerJoinListener()
-        registerPeerLeaveListener()
+        signaling = SignalingManager(signalingListener)
+        signaling.joinRoom(roomName, self)
     }
 
     fun leaveRoom() {
-        roomRef.collection(COLLECTION_PEER_LEAVE).add(self)
+        roomManager.disconnect()
+        signaling.leaveRoom(self)
 
         if (isRoomCreatedByMe) {
-            roomRef.delete()
-                .addOnSuccessListener {
-                    Log.d(TAG, "DocumentSnapshot successfully deleted!")
-                }
-                .addOnFailureListener { exception ->
-                    Log.e(TAG, "error deleting document ", exception)
-                }
+            signaling.closeRoom()
         }
     }
 
-    private fun registerPeerJoinListener() {
-        Log.d(TAG, "registerPeerJoinListener")
-        roomRef.collection(COLLECTION_PEER_JOIN).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
-            }
-
-            for (doc in value!!) {
-                if (doc.data["id"] != self.id) {
-                    Log.d(TAG, "peer join: ${doc.data}")
-                }
+    private val signalingListener = object : SignalingManager.SignalingListener {
+        override fun onPeerJoinReceived(peerInfo: PeerInfo) {
+            if (peerInfo != self) {
+                Log.d(TAG, "onPeerJoinReceived: $peerInfo")
+                roomManager.onPeerJoin(peerInfo.id)
             }
         }
-    }
 
-    private fun registerPeerLeaveListener() {
-        Log.d(TAG, "registerPeerLeaveListener")
-        roomRef.collection(COLLECTION_PEER_LEAVE).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
+        override fun onPeerLeaveReceived(peerInfo: PeerInfo) {
+            if (peerInfo != self) {
+                Log.d(TAG, "onPeerLeaveReceived: $peerInfo")
+                roomManager.onPeerLeave(peerInfo.id)
             }
+        }
 
-            for (doc in value!!) {
-                if (doc.data["id"] != self.id) {
-                    Log.d(TAG, "peer leave: ${doc.data}")
-                }
+        override fun onSdpReceived(sdp: Sdp) {
+            if (sdp.to == self.id) {
+                Log.d(TAG, "onSdpReceived: ${sdp.from} ${sdp.to} ${sdp.type}")
+                roomManager.onSdpReceived(sdp)
+            }
+        }
+
+        override fun onCandidateReceived(sdpCandidate: SdpCandidate) {
+            if (sdpCandidate.to == self.id) {
+                Log.d(TAG, "onCandidateReceived: ${sdpCandidate.from} ${sdpCandidate.to} ${sdpCandidate.candidate}")
+                roomManager.onCandidateReceived(sdpCandidate)
+            }
+        }
+
+        override fun onCandidatesRemoveReceived(sdpCandidatesRemove: SdpCandidatesRemove) {
+            if (sdpCandidatesRemove.to == self.id) {
+                Log.d(
+                    TAG,
+                    "onCandidatesRemoveReceived: ${sdpCandidatesRemove.from} ${sdpCandidatesRemove.to} ${sdpCandidatesRemove.candidates}"
+                )
+                roomManager.onCandidatesRemoveReceived(sdpCandidatesRemove)
             }
         }
     }
@@ -113,12 +113,115 @@ class MainViewModel : ViewModel() {
         Log.d(TAG, "onCleared")
     }
 
-    companion object {
-        private const val TAG = "[wa]MainViewModel"
+    private val roomListener = object : Listener.RoomListener {
+        override fun onLocalDescription(to: String, type: String, sdp: String) {
+            Log.d(TAG, "onLocalDescription $to $type")
+            signaling.sendSDP(Sdp(self.id, to, type, sdp))
+        }
 
-        private const val COLLECTION_ROOMS = "rooms"
-//        private const val COLLECTION_SIGNALING = "signaling"
-        private const val COLLECTION_PEER_JOIN = "peer_join"
-        private const val COLLECTION_PEER_LEAVE = "peer_leave"
+        override fun onIceCandidate(to: String, iceCandidate: IceCandidate) {
+            Log.d(TAG, "onIceCandidate $to $iceCandidate")
+            signaling.sendCandidate(
+                SdpCandidate(
+                    self.id,
+                    to,
+                    Candidate(iceCandidate.sdpMid, iceCandidate.sdpMLineIndex, iceCandidate.sdp)
+                )
+            )
+        }
+
+        override fun onIceCandidatesRemove(to: String, iceCandidates: Array<out IceCandidate>) {
+            Log.d(TAG, "onIceCandidatesRemove $to $iceCandidates")
+            val candidates = mutableListOf<Candidate>()
+            iceCandidates.forEach {
+                candidates.add(Candidate(it.sdpMid, it.sdpMLineIndex, it.sdp))
+            }
+            signaling.sendCandidatesRemove(SdpCandidatesRemove(self.id, to, candidates))
+        }
+
+        override fun onConnected(room: Room) {
+            Log.d(TAG, "onConnected")
+        }
+
+        override fun onConnectFailed(room: Room) {
+            Log.d(TAG, "onConnectFailed")
+        }
+
+        override fun onDisconnected(room: Room) {
+            Log.d(TAG, "onDisconnected")
+        }
+
+        override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {
+            Log.d(TAG, "onPeerConnected ${remotePeer.id}")
+        }
+
+        override fun onPeerDisconnected(room: Room, remotePeer: RemotePeer) {
+            Log.d(TAG, "onPeerDisconnected ${remotePeer.id}")
+        }
+    }
+
+    private val remotePeerListener = object : Listener.RemotePeerListener {
+        override fun onAudioTrackEnabled(
+            remotePeer: RemotePeer,
+            remoteAudioTrack: RemoteAudioTrack
+        ) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onAudioTrackDisabled(
+            remotePeer: RemotePeer,
+            remoteAudioTrack: RemoteAudioTrack
+        ) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onVideoTrackEnabled(
+            remotePeer: RemotePeer,
+            remoteVideoTrack: RemoteVideoTrack
+        ) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onVideoTrackDisabled(
+            remotePeer: RemotePeer,
+            remoteVideoTrack: RemoteVideoTrack
+        ) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onDataTrackEnabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onDataTrackDisabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
+            TODO("Not yet implemented")
+        }
+    }
+
+    private val remoteDataListener = object : Listener.RemoteDataListener {
+        override fun onMessage(
+            remotePeer: RemotePeer,
+            remoteDataTrack: RemoteDataTrack,
+            byteBuffer: ByteBuffer
+        ) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onMessage(
+            remotePeer: RemotePeer,
+            remoteDataTrack: RemoteDataTrack,
+            message: String
+        ) {
+            TODO("Not yet implemented")
+        }
+    }
+
+    companion object {
+        private const val TAG = "[rtc]MainViewModel"
+
+        private val ICE_URLS = listOf(
+            "stun:stun1.l.google.com:19302",
+            "stun:stun2.l.google.com:19302"
+        )
     }
 }
