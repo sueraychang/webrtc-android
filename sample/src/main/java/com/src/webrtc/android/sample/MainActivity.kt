@@ -44,6 +44,11 @@ class MainActivity : AppCompatActivity() {
                     requestPermissions()
                 }
             }
+
+            leaveRoom.setOnClickListener {
+                Log.d(TAG, "on leaveRoom click")
+                viewModel.leaveRoom()
+            }
         }
 
         // Enable Firestore logging

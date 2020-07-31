@@ -24,6 +24,16 @@
         app:layout_constraintTop_toBottomOf="@+id/create_room"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/leave_room"/>
+
+    <Button
+        android:id="@+id/leave_room"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Leave Room"
+        app:layout_constraintTop_toBottomOf="@+id/join_room"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
