@@ -32,30 +32,26 @@ class SignalingManager(
     private lateinit var candidateListener: ListenerRegistration
     private lateinit var candidatesRemoveListener: ListenerRegistration
 
-    fun createRoom(roomInfo: RoomInfo) {
-        roomRef = firestore.collection(COLLECTION_ROOMS).document(roomInfo.name)
-
-        registerListeners()
-
-        roomRef.set(roomInfo)
-    }
-
-    fun joinRoom(roomName: String, self: PeerInfo) {
+    fun connectToRoom(roomName: String, self: PeerInfo) {
         roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
-
-        registerListeners()
-
         roomRef.get()
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     Log.d(TAG, "DocumentSnapshot data: ${document.data}")
+                    registerListeners()
                     roomRef.collection(COLLECTION_PEER_JOIN).add(self)
                 } else {
                     Log.e(TAG, "No such document")
+                    roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
+                    roomRef.set(RoomInfo(roomName, System.currentTimeMillis()))
+                    registerListeners()
                 }
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "get failed with ", exception)
+                roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
+                roomRef.set(RoomInfo(roomName, System.currentTimeMillis()))
+                registerListeners()
             }
     }
 
@@ -104,38 +100,40 @@ class SignalingManager(
 
     private fun registerPeerJoinListener() {
         Log.d(TAG, "registerPeerJoinListener")
-        peerJoinListener = roomRef.collection(COLLECTION_PEER_JOIN).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
-            }
+        peerJoinListener =
+            roomRef.collection(COLLECTION_PEER_JOIN).addSnapshotListener { value, e ->
+                if (e != null) {
+                    Log.e(TAG, "listen failed.", e)
+                    return@addSnapshotListener
+                }
 
-            if (value!!.metadata.hasPendingWrites()) {
-                return@addSnapshotListener
-            }
+                if (value!!.metadata.hasPendingWrites()) {
+                    return@addSnapshotListener
+                }
 
-            for (doc in value!!) {
-                listener.onPeerJoinReceived(doc.toObject(PeerInfo::class.java))
+                for (doc in value!!) {
+                    listener.onPeerJoinReceived(doc.toObject(PeerInfo::class.java))
+                }
             }
-        }
     }
 
     private fun registerPeerLeaveListener() {
         Log.d(TAG, "registerPeerLeaveListener")
-        peerLeaveListener = roomRef.collection(COLLECTION_PEER_LEAVE).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
-            }
+        peerLeaveListener =
+            roomRef.collection(COLLECTION_PEER_LEAVE).addSnapshotListener { value, e ->
+                if (e != null) {
+                    Log.e(TAG, "listen failed.", e)
+                    return@addSnapshotListener
+                }
 
-            if (value!!.metadata.hasPendingWrites()) {
-                return@addSnapshotListener
-            }
+                if (value!!.metadata.hasPendingWrites()) {
+                    return@addSnapshotListener
+                }
 
-            for (doc in value!!) {
-                listener.onPeerLeaveReceived(doc.toObject(PeerInfo::class.java))
+                for (doc in value!!) {
+                    listener.onPeerLeaveReceived(doc.toObject(PeerInfo::class.java))
+                }
             }
-        }
     }
 
     private fun registerSDPListener() {
@@ -158,38 +156,40 @@ class SignalingManager(
 
     private fun registerCandidateListener() {
         Log.d(TAG, "registerCandidateListener")
-        candidateListener = roomRef.collection(COLLECTION_CANDIDATE).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
-            }
+        candidateListener =
+            roomRef.collection(COLLECTION_CANDIDATE).addSnapshotListener { value, e ->
+                if (e != null) {
+                    Log.e(TAG, "listen failed.", e)
+                    return@addSnapshotListener
+                }
 
-            if (value!!.metadata.hasPendingWrites()) {
-                return@addSnapshotListener
-            }
+                if (value!!.metadata.hasPendingWrites()) {
+                    return@addSnapshotListener
+                }
 
-            for (doc in value!!) {
-                listener.onCandidateReceived(doc.toObject(SdpCandidate::class.java))
+                for (doc in value!!) {
+                    listener.onCandidateReceived(doc.toObject(SdpCandidate::class.java))
+                }
             }
-        }
     }
 
     private fun registerCandidatesRemoveListener() {
         Log.d(TAG, "registerCandidatesRemoveListener")
-        candidatesRemoveListener = roomRef.collection(COLLECTION_CANDIDATES_REMOVE).addSnapshotListener { value, e ->
-            if (e != null) {
-                Log.e(TAG, "listen failed.", e)
-                return@addSnapshotListener
-            }
+        candidatesRemoveListener =
+            roomRef.collection(COLLECTION_CANDIDATES_REMOVE).addSnapshotListener { value, e ->
+                if (e != null) {
+                    Log.e(TAG, "listen failed.", e)
+                    return@addSnapshotListener
+                }
 
-            if (value!!.metadata.hasPendingWrites()) {
-                return@addSnapshotListener
-            }
+                if (value!!.metadata.hasPendingWrites()) {
+                    return@addSnapshotListener
+                }
 
-            for (doc in value!!) {
-                listener.onCandidatesRemoveReceived(doc.toObject(SdpCandidatesRemove::class.java))
+                for (doc in value!!) {
+                    listener.onCandidatesRemoveReceived(doc.toObject(SdpCandidatesRemove::class.java))
+                }
             }
-        }
     }
 
     companion object {

@@ -135,8 +135,8 @@ public abstract class PeerConnectionClient {
   private PeerConnection peerConnection;
   @Nullable
   private AudioSource audioSource;
-  @Nullable private SurfaceTextureHelper surfaceTextureHelper;
-  @Nullable private VideoSource videoSource;
+  @Nullable protected SurfaceTextureHelper surfaceTextureHelper;
+  @Nullable protected VideoSource videoSource;
   private boolean preferIsac;
   private boolean videoCapturerStopped;
   private boolean isError;
@@ -214,6 +214,12 @@ public abstract class PeerConnectionClient {
   public abstract void createLocalAudioTracks();
 
   public abstract void createLocalVideoTracks();
+
+  public abstract void addLocalAudioTracks(PeerConnection peerConnection);
+
+  public abstract void addLocalVideoTracks(PeerConnection peerConnection);
+
+  public abstract void addLocalDataTracks(String id, PeerConnection peerConnection);
 
   public void setPeerConnectionEvents(PeerConnectionEvents events) {
     this.events = events;
@@ -691,16 +697,32 @@ public abstract class PeerConnectionClient {
 
     List<String> mediaStreamLabels = Collections.singletonList("ARDAMS");
     if (isVideoCallEnabled()) {
-      peerConnection.addTrack(createVideoTrack(videoCapturer), mediaStreamLabels);
+      // +++ Robin: add video track to peer connection +++
+//      peerConnection.addTrack(createVideoTrack(videoCapturer), mediaStreamLabels);
+      addLocalVideoTracks(peerConnection);
+      // --- Robin: add video track to peer connection ---
       // We can add the renderers right away because we don't need to wait for an
       // answer to get the remote track.
-      remoteVideoTrack = getRemoteVideoTrack();
-      remoteVideoTrack.setEnabled(renderVideo);
-      for (VideoSink remoteSink : remoteSinks) {
-        remoteVideoTrack.addSink(remoteSink);
-      }
+      // +++ Robin: No need to addSink at this place. +++
+//      remoteVideoTrack = getRemoteVideoTrack();
+//      remoteVideoTrack.setEnabled(renderVideo);
+//      for (VideoSink remoteSink : remoteSinks) {
+//        remoteVideoTrack.addSink(remoteSink);
+//      }
+      // +++ Robin: No need to addSink at this place. +++
     }
-    peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
+    // +++ Robin: add audio track to peer connection +++
+//	  peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
+    if (isAudioTrackEnabled) {
+      addLocalAudioTracks(peerConnection);
+    }
+    // --- Robin: add audio track to peer connection ---
+
+    // +++ Robin: add data track to peer connection +++
+    if (isDataTrackEnabled) {
+      addLocalDataTracks(null, peerConnection);
+    }
+    // --- Robin: add data track to peer connection ---
     if (isVideoCallEnabled()) {
       findVideoSender();
     }

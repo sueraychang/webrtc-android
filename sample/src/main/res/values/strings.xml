@@ -3,4 +3,6 @@
 
     <string name="connect_permissions_needed">Camera and Microphone permissions are needed. Please allow in App Settings for additional functionality.</string>
 
+    <string name="connect_room_name_needed">Please enter a room name.</string>
+
 </resources>

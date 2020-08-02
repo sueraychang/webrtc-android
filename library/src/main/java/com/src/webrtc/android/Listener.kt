@@ -49,4 +49,11 @@ interface Listener {
 
         fun onMessage(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack, message: String)
     }
+
+    interface CameraSwitchListener {
+
+        fun onCameraSwitchDone(isFrontCamera: Boolean)
+
+        fun onCameraSwitchError(error: String)
+    }
 }

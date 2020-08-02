@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.src.webrtc.android.sample.databinding.ActivityMainBinding
@@ -25,30 +27,33 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this, ViewModelFactory.getInstance(application)).get(MainViewModel::class.java)
 
         binding.apply {
-            createRoom.setOnClickListener {
+            connectRoom.setOnClickListener {
                 Log.d(TAG, "on createRoom click")
-                joinRoom.isEnabled = false
-                if (isPermissionsGranted()) {
-                    viewModel.createRoom()
+                if (roomName.text.isEmpty()) {
+                    Toast.makeText(this@MainActivity, R.string.connect_room_name_needed, Toast.LENGTH_SHORT)
                 } else {
-                    requestPermissions()
+                    if (isPermissionsGranted()) {
+                        connectRoom.isEnabled = false
+                        roomName.isEnabled = false
+                        leaveRoom.isEnabled = true
+                        viewModel.connectToRoom(binding.roomName.text.toString())
+                    } else {
+                        requestPermissions()
+                    }
                 }
             }
 
-            joinRoom.setOnClickListener {
-                Log.d(TAG, "on joinRoom click")
-                createRoom.isEnabled = false
-                if (isPermissionsGranted()) {
-                    viewModel.joinRoom(ROOM_NAME)
-                } else {
-                    requestPermissions()
-                }
-            }
-
+            leaveRoom.isEnabled = false
             leaveRoom.setOnClickListener {
                 Log.d(TAG, "on leaveRoom click")
                 viewModel.leaveRoom()
+                connectRoom.isEnabled = true
+                roomName.isEnabled = true
+                leaveRoom.isEnabled = false
             }
+
+            viewModel.setMainView(mainView)
+            viewModel.setSubView(subView)
         }
 
         // Enable Firestore logging
@@ -62,14 +67,10 @@ class MainActivity : AppCompatActivity() {
     ) {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (verifyPermissions(grantResults)) {
-                if (binding.createRoom.isEnabled) {
-                    viewModel.createRoom()
-                } else {
-                    viewModel.joinRoom(ROOM_NAME)
-                }
-            } else {
-                binding.createRoom.isEnabled = true
-                binding.joinRoom.isEnabled = true
+                binding.connectRoom.isEnabled = false
+                binding.roomName.isEnabled = false
+                binding.leaveRoom.isEnabled = true
+                viewModel.connectToRoom(binding.roomName.text.toString())
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)

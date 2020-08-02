@@ -6,34 +6,50 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/create_room"
-        android:layout_width="wrap_content"
+    <org.webrtc.SurfaceViewRenderer
+        android:id="@+id/main_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <org.webrtc.SurfaceViewRenderer
+        android:id="@+id/sub_view"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/room_name"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Create Room"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:hint="Room Name"
+        app:layout_constraintEnd_toStartOf="@+id/connect_room"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/join_room"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/join_room"
+        android:id="@+id/connect_room"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Join Room"
-        app:layout_constraintTop_toBottomOf="@+id/create_room"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/leave_room"/>
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:text="connect"
+        app:layout_constraintEnd_toStartOf="@+id/leave_room"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/leave_room"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
         android:text="Leave Room"
-        app:layout_constraintTop_toBottomOf="@+id/join_room"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

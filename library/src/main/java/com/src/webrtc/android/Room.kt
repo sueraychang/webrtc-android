@@ -16,7 +16,7 @@ class Room private constructor(
     private val remoteDataListener: Listener.RemoteDataListener
 ){
 
-    private val eglBase = EglBase.create()
+    val eglBase = EglBase.create()
 
     private val executorService = Executors.newSingleThreadExecutor()
 

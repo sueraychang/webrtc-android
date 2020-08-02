@@ -3,8 +3,9 @@ package com.src.webrtc.android.sample
 import android.content.Context
 import android.util.Log
 import com.src.webrtc.android.*
-import com.src.webrtc.android.Room
-import com.src.webrtc.android.sample.data.*
+import com.src.webrtc.android.sample.data.Sdp
+import com.src.webrtc.android.sample.data.SdpCandidate
+import com.src.webrtc.android.sample.data.SdpCandidatesRemove
 import org.webrtc.IceCandidate
 
 
@@ -19,9 +20,29 @@ class RoomManager(
 
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 
-        val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls).build()
+        val videoConstraints = VideoConstraints.Builder()
+            .fps(30)
+            .resolution(Resolution.HD)
+            .build()
+        val cameraCaptureManager = CameraCaptureManager(this.context)
+        val localVideoTrack = LocalVideoTrack(
+            "camera",
+            true,
+            videoConstraints,
+            cameraCaptureManager.videoCapturer
+        )
 
-        room = Room.connect(context, connectParameters, roomListener, remotePeerListener, remoteDataListener)
+        val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls)
+            .videoTracks(listOf(localVideoTrack))
+            .build()
+
+        room = Room.connect(
+            context,
+            connectParameters,
+            roomListener,
+            remotePeerListener,
+            remoteDataListener
+        )
     }
 
     fun onPeerJoin(peerId: String) {
@@ -41,7 +62,11 @@ class RoomManager(
 
     fun onCandidateReceived(sdpCandidate: SdpCandidate) {
         Log.d(TAG, "onCandidateReceived")
-        val candidate = IceCandidate(sdpCandidate.candidate.sdpMid, sdpCandidate.candidate.sdpMLineIndex, sdpCandidate.candidate.candidate)
+        val candidate = IceCandidate(
+            sdpCandidate.candidate.sdpMid,
+            sdpCandidate.candidate.sdpMLineIndex,
+            sdpCandidate.candidate.candidate
+        )
         room.onCandidateReceived(sdpCandidate.from, candidate)
     }
 

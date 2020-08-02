@@ -5,17 +5,14 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import org.appspot.apprtc.AppRTCClient
-import org.webrtc.EglBase
-import org.webrtc.IceCandidate
-import org.webrtc.SessionDescription
-import org.webrtc.StatsReport
+import org.webrtc.*
 import java.util.concurrent.ExecutorService
 
 class RemotePeer(
     id: String,
     context: Context,
     isInitiator: Boolean,
-    localPeer: LocalPeer,
+    private val localPeer: LocalPeer,
     eglBase: EglBase,
     peerConnectionParameters: PeerConnectionParameters,
     executorService: ExecutorService,
@@ -111,6 +108,18 @@ class RemotePeer(
 
     override fun createLocalVideoTracks() {
         TODO("Not yet implemented")
+    }
+
+    override fun addLocalAudioTracks(peerConnection: PeerConnection) {
+        localPeer.addLocalAudioTracks(peerConnection)
+    }
+
+    override fun addLocalVideoTracks(peerConnection: PeerConnection) {
+        localPeer.addLocalVideoTracks(peerConnection)
+    }
+
+    override fun addLocalDataTracks(id: String, peerConnection: PeerConnection) {
+        localPeer.addLocalDataTracks(id, peerConnection)
     }
 
     fun getAudioTracks(): Map<String, RemoteAudioTrack> {

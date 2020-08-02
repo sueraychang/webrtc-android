@@ -3,11 +3,15 @@ package com.src.webrtc.android.sample
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.src.webrtc.android.*
 import com.src.webrtc.android.sample.data.*
 import org.webrtc.IceCandidate
+import org.webrtc.RendererCommon
+import org.webrtc.SurfaceViewRenderer
 import java.nio.ByteBuffer
 import java.util.*
 
@@ -15,48 +19,37 @@ class MainViewModel(
     private val context: Application
 ) : AndroidViewModel(context) {
 
-    private val firestore = FirebaseFirestore.getInstance()
-
-    private lateinit var roomRef: DocumentReference
-
-    private lateinit var peerJoin: DocumentReference
-
-    private lateinit var roomInfo: RoomInfo
-
     private lateinit var self: PeerInfo
 
     private lateinit var signaling: SignalingManager
 
     private lateinit var roomManager: RoomManager
 
+    private lateinit var localPeer: LocalPeer
+
+    private lateinit var localVideoTrack: LocalVideoTrack
+
+    private lateinit var mainView: SurfaceViewRenderer
+    private val mainViewRenderer = VideoRenderer()
+
+    private lateinit var subView: SurfaceViewRenderer
+    private val subViewRenderer = VideoRenderer()
+
     private var isRoomCreatedByMe = false
 
-    fun createRoom() {
+    fun connectToRoom(roomName: String) {
         Log.d(TAG, "createRoom")
 
-        roomInfo =
-            RoomInfo(UUID.randomUUID().toString().substring(0, 8), System.currentTimeMillis())
         self = PeerInfo(UUID.randomUUID().toString(), "Harry")
-
-        roomManager = RoomManager(context, roomListener, remotePeerListener, remoteDataListener)
-        roomManager.connect(roomInfo.name, self.id, ICE_URLS)
-
-        Log.d(TAG, "room name: ${roomInfo.name}")
-        isRoomCreatedByMe = true
-
-        signaling = SignalingManager(signalingListener)
-        signaling.createRoom(roomInfo)
-    }
-
-    fun joinRoom(roomName: String) {
-        Log.d(TAG, "joinRoom")
-        self = PeerInfo(UUID.randomUUID().toString(), "Hermione")
 
         roomManager = RoomManager(context, roomListener, remotePeerListener, remoteDataListener)
         roomManager.connect(roomName, self.id, ICE_URLS)
 
+        Log.d(TAG, "room name: $roomName")
+        isRoomCreatedByMe = true
+
         signaling = SignalingManager(signalingListener)
-        signaling.joinRoom(roomName, self)
+        signaling.connectToRoom(roomName, self)
     }
 
     fun leaveRoom() {
@@ -66,6 +59,16 @@ class MainViewModel(
         if (isRoomCreatedByMe) {
             signaling.closeRoom()
         }
+    }
+
+    fun setMainView(view: SurfaceViewRenderer) {
+        mainView = view
+        mainViewRenderer.setTarget(view)
+    }
+
+    fun setSubView(view: SurfaceViewRenderer) {
+        subView = view
+        subViewRenderer.setTarget(view)
     }
 
     private val signalingListener = object : SignalingManager.SignalingListener {
@@ -109,8 +112,8 @@ class MainViewModel(
     }
 
     override fun onCleared() {
-        super.onCleared()
         Log.d(TAG, "onCleared")
+        super.onCleared()
     }
 
     private val roomListener = object : Listener.RoomListener {
@@ -141,6 +144,15 @@ class MainViewModel(
 
         override fun onConnected(room: Room) {
             Log.d(TAG, "onConnected")
+
+            mainView.init(room.eglBase.eglBaseContext, null)
+            mainView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+            mainView.setEnableHardwareScaler(false)
+            mainView.setMirror(true)
+
+            localPeer = room.localPeer
+            localVideoTrack = room.localPeer.getVideoTracks()["camera"] ?: error("Camera track not found.")
+            localVideoTrack.addRenderer(mainViewRenderer)
         }
 
         override fun onConnectFailed(room: Room) {
@@ -149,6 +161,9 @@ class MainViewModel(
 
         override fun onDisconnected(room: Room) {
             Log.d(TAG, "onDisconnected")
+
+            mainView.clearImage()
+            mainView.release()
         }
 
         override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {

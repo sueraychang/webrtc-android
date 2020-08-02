@@ -2,10 +2,8 @@ package com.src.webrtc.android
 
 import android.content.Context
 import android.util.Log
-import org.webrtc.EglBase
+import org.webrtc.*
 import org.webrtc.PeerConnection.IceServer
-import org.webrtc.PeerConnectionFactory
-import org.webrtc.VideoCapturer
 import java.util.concurrent.ExecutorService
 
 class LocalPeer(
@@ -34,12 +32,21 @@ class LocalPeer(
             param.videoTracks.forEach {
                 videoTracks[it.name] = it
             }
+            videoTracks.forEach { (t, u) ->
+                Log.d(TAG, "$t $u")
+            }
             param.dataTracks.forEach {
                 dataTracks[it.name] = it
             }
         }
 
         createPeerConnectionFactory(PeerConnectionFactory.Options())
+    }
+
+    private val localVideoTrackEvents = object: LocalVideoTrack.LocalVideoTrackEvents {
+        override fun setEnable(name: String, isEnable: Boolean) {
+            // TODO("Not yet implemented")
+        }
     }
 
     override fun release() {
@@ -59,11 +66,36 @@ class LocalPeer(
     }
 
     override fun createLocalVideoTracks() {
+        Log.d(TAG, "createLocalVideoTracks")
         if (videoTracks.isEmpty()) {
             return
         }
 
-        TODO("createLocalVideoTracks")
+        for ((name, track) in videoTracks) {
+            surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+            videoSource = factory!!.createVideoSource(track.videoCapturer.isScreencast)
+            track.videoCapturer.initialize(surfaceTextureHelper, context, videoSource!!.capturerObserver)
+            val width = track.videoConstraints.resolution.width
+            val height = track.videoConstraints.resolution.height
+            val fps = track.videoConstraints.fps
+            track.videoCapturer.startCapture(width, height, fps)
+            val internalTrack = factory!!.createVideoTrack(name, videoSource)
+            track.initInternalVideoTrack(internalTrack, executor, localVideoTrackEvents, surfaceTextureHelper!!)
+        }
+    }
+
+    override fun addLocalAudioTracks(peerConnection: PeerConnection) {
+        // TODO("Not yet implemented")
+    }
+
+    override fun addLocalVideoTracks(peerConnection: PeerConnection) {
+        videoTracks.forEach { (name, track) ->
+            peerConnection.addTrack(track.internalVideoTrack, listOf(name))
+        }
+    }
+
+    override fun addLocalDataTracks(id: String, peerConnection: PeerConnection) {
+        // TODO("Not yet implemented")
     }
 
     fun getIceServers(): List<IceServer> {
