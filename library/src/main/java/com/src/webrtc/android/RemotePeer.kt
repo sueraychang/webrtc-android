@@ -85,6 +85,31 @@ class RemotePeer(
             Log.d(TAG, "onPeerConnectionError $description")
             events.onPeerConnectionError(id, description)
         }
+
+        override fun onAddStream(stream: MediaStream) {
+            Log.d(TAG, "onAddStream $stream")
+            if (stream.videoTracks.isNotEmpty()) {
+                stream.videoTracks.forEach {
+                    Log.d(TAG, "video stream ${it.id()}")
+                    val remoteVideoTrack = RemoteVideoTrack(stream.id, true, executor, it)
+                    videoTracks[remoteVideoTrack.name] = remoteVideoTrack
+                }
+            }
+            if (stream.audioTracks.isNotEmpty()) {
+                stream.audioTracks.forEach {
+                    Log.d(TAG, "audio stream ${it.id()}")
+
+                }
+            }
+        }
+
+        override fun onRemoveStream(stream: MediaStream) {
+            Log.d(TAG, "onRemoveStream")
+        }
+
+        override fun onDataChannel(dc: DataChannel) {
+            Log.d(TAG, "onDataChannel")
+        }
     }
 
     init {
@@ -103,11 +128,11 @@ class RemotePeer(
     }
 
     override fun createLocalAudioTracks() {
-        TODO("Not yet implemented")
+        // Keep this empty.
     }
 
     override fun createLocalVideoTracks() {
-        TODO("Not yet implemented")
+        // Keep this empty.
     }
 
     override fun addLocalAudioTracks(peerConnection: PeerConnection) {

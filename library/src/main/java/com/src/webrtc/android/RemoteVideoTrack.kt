@@ -4,12 +4,14 @@ import java.util.concurrent.ExecutorService
 
 class RemoteVideoTrack(
     override val name: String,
-    override val enable: Boolean
+    override val enable: Boolean,
+    executorService: ExecutorService,
+    videoTrack: org.webrtc.VideoTrack
 ) : VideoTrack() {
 
-    override var executor: ExecutorService? = null
+    override var executor: ExecutorService? = executorService
 
-    override var internalVideoTrack: org.webrtc.VideoTrack? = null
+    override var internalVideoTrack: org.webrtc.VideoTrack? = videoTrack
 
     override fun isEnable(): Boolean {
         return internalVideoTrack?.enabled() ?: false

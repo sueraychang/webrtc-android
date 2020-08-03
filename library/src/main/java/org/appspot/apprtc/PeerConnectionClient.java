@@ -364,6 +364,14 @@ public abstract class PeerConnectionClient {
      * Callback fired once peer connection error happened.
      */
     void onPeerConnectionError(final String description);
+
+    // +++ Robin: Get track name from MediaStream id +++
+    void onAddStream(final MediaStream stream);
+
+    void onRemoveStream(final MediaStream stream);
+
+    void onDataChannel(final DataChannel dc);
+    // --- Robin: Get track name from MediaStream id ---
   }
 
   /**
@@ -463,7 +471,10 @@ public abstract class PeerConnectionClient {
   // --- Robin: split close function for LocalPeer & RemotePeer ---
 
   private boolean isVideoCallEnabled() {
-    return peerConnectionParameters.videoCallEnabled && videoCapturer != null;
+    // +++ Robin: add the parameter of enabling video track +++
+//    return peerConnectionParameters.videoCallEnabled && videoCapturer != null;
+    return peerConnectionParameters.videoCallEnabled && isVideoTrackEnabled;
+    // --- Robin: add the parameter of enabling video track ---
   }
 
   private void createPeerConnectionFactoryInternal(PeerConnectionFactory.Options options) {
@@ -1427,10 +1438,30 @@ public abstract class PeerConnectionClient {
     }
 
     @Override
-    public void onAddStream(final MediaStream stream) {}
+    // +++ Robin: Deliver onAddStream event to front +++
+    public void onAddStream(final MediaStream stream) {
+      Log.d(TAG, "onAddStream " + stream.toString());
+      executor.execute(() -> {
+        if (events == null) {
+          return;
+        }
+        events.onAddStream(stream);
+      });
+    }
+    // --- Robin: Deliver onAddStream event to front ---
 
     @Override
-    public void onRemoveStream(final MediaStream stream) {}
+    // +++ Robin: Deliver onRemoveStream event to front +++
+    public void onRemoveStream(final MediaStream stream) {
+      Log.d(TAG, "onRemoveStream " + stream.toString());
+      executor.execute(() -> {
+        if (events == null) {
+          return;
+        }
+        events.onRemoveStream(stream);
+      });
+    }
+    // --- Robin: Deliver onRemoveStream event to front ---
 
     @Override
     public void onDataChannel(final DataChannel dc) {
@@ -1439,30 +1470,40 @@ public abstract class PeerConnectionClient {
       if (!dataChannelEnabled)
         return;
 
-      dc.registerObserver(new DataChannel.Observer() {
-        @Override
-        public void onBufferedAmountChange(long previousAmount) {
-          Log.d(TAG, "Data channel buffered amount changed: " + dc.label() + ": " + dc.state());
-        }
+      // +++ Robin: Deliver onDataChannel event to front +++
+      if (events == null) {
+        return;
+      }
 
-        @Override
-        public void onStateChange() {
-          Log.d(TAG, "Data channel state changed: " + dc.label() + ": " + dc.state());
-        }
+      events.onDataChannel(dc);
+      // --- Robin: Deliver onDataChannel event to front ---
 
-        @Override
-        public void onMessage(final DataChannel.Buffer buffer) {
-          if (buffer.binary) {
-            Log.d(TAG, "Received binary msg over " + dc);
-            return;
-          }
-          ByteBuffer data = buffer.data;
-          final byte[] bytes = new byte[data.capacity()];
-          data.get(bytes);
-          String strData = new String(bytes, Charset.forName("UTF-8"));
-          Log.d(TAG, "Got msg: " + strData + " over " + dc);
-        }
-      });
+      // +++ Robin: We don't use this observer +++
+//      dc.registerObserver(new DataChannel.Observer() {
+//        @Override
+//        public void onBufferedAmountChange(long previousAmount) {
+//          Log.d(TAG, "Data channel buffered amount changed: " + dc.label() + ": " + dc.state());
+//        }
+//
+//        @Override
+//        public void onStateChange() {
+//          Log.d(TAG, "Data channel state changed: " + dc.label() + ": " + dc.state());
+//        }
+//
+//        @Override
+//        public void onMessage(final DataChannel.Buffer buffer) {
+//          if (buffer.binary) {
+//            Log.d(TAG, "Received binary msg over " + dc);
+//            return;
+//          }
+//          ByteBuffer data = buffer.data;
+//          final byte[] bytes = new byte[data.capacity()];
+//          data.get(bytes);
+//          String strData = new String(bytes, Charset.forName("UTF-8"));
+//          Log.d(TAG, "Got msg: " + strData + " over " + dc);
+//        }
+//      });
+      // --- Robin: We don't use this observer ---
     }
 
     @Override

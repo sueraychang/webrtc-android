@@ -22,21 +22,28 @@ class LocalPeer(
     private val iceServers = mutableListOf<IceServer>()
 
     init {
+        Log.d(TAG, "init")
         connectionParameters.let { param ->
             param.iceUrls.forEach {
                 iceServers.add(IceServer(it))
             }
-            param.audioTracks.forEach {
-                audioTracks[it.name] = it
+            if (param.audioTracks.isNotEmpty()) {
+                isAudioTrackEnabled = true
+                param.audioTracks.forEach {
+                    audioTracks[it.name] = it
+                }
             }
-            param.videoTracks.forEach {
-                videoTracks[it.name] = it
+            if (param.videoTracks.isNotEmpty()) {
+                isVideoTrackEnabled = true
+                param.videoTracks.forEach {
+                    videoTracks[it.name] = it
+                }
             }
-            videoTracks.forEach { (t, u) ->
-                Log.d(TAG, "$t $u")
-            }
-            param.dataTracks.forEach {
-                dataTracks[it.name] = it
+            if (param.dataTracks.isNotEmpty()) {
+                isDataTrackEnabled = true
+                param.dataTracks.forEach {
+                    dataTracks[it.name] = it
+                }
             }
         }
 
@@ -89,6 +96,7 @@ class LocalPeer(
     }
 
     override fun addLocalVideoTracks(peerConnection: PeerConnection) {
+        Log.d(TAG, "addLocalVideoTracks")
         videoTracks.forEach { (name, track) ->
             peerConnection.addTrack(track.internalVideoTrack, listOf(name))
         }

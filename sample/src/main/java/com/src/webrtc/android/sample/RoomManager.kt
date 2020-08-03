@@ -16,7 +16,7 @@ class RoomManager(
     private val remoteDataListener: Listener.RemoteDataListener
 ) {
 
-    private lateinit var room: Room
+    lateinit var room: Room
 
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 

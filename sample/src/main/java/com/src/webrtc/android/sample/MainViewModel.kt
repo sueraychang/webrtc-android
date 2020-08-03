@@ -23,17 +23,23 @@ class MainViewModel(
 
     private lateinit var signaling: SignalingManager
 
-    private lateinit var roomManager: RoomManager
+    lateinit var roomManager: RoomManager
 
-    private lateinit var localPeer: LocalPeer
+    private val _room = MutableLiveData<Room>()
+    val room: LiveData<Room> = _room
+
+    private val _localPeer = MutableLiveData<LocalPeer>()
+    val localPeer: LiveData<LocalPeer> = _localPeer
 
     private lateinit var localVideoTrack: LocalVideoTrack
 
-    private lateinit var mainView: SurfaceViewRenderer
-    private val mainViewRenderer = VideoRenderer()
 
-    private lateinit var subView: SurfaceViewRenderer
-    private val subViewRenderer = VideoRenderer()
+
+//    private lateinit var mainView: SurfaceViewRenderer
+//    private val mainViewRenderer = VideoRenderer()
+//
+//    private lateinit var subView: SurfaceViewRenderer
+//    private val subViewRenderer = VideoRenderer()
 
     private var isRoomCreatedByMe = false
 
@@ -59,16 +65,6 @@ class MainViewModel(
         if (isRoomCreatedByMe) {
             signaling.closeRoom()
         }
-    }
-
-    fun setMainView(view: SurfaceViewRenderer) {
-        mainView = view
-        mainViewRenderer.setTarget(view)
-    }
-
-    fun setSubView(view: SurfaceViewRenderer) {
-        subView = view
-        subViewRenderer.setTarget(view)
     }
 
     private val signalingListener = object : SignalingManager.SignalingListener {
@@ -113,6 +109,7 @@ class MainViewModel(
 
     override fun onCleared() {
         Log.d(TAG, "onCleared")
+
         super.onCleared()
     }
 
@@ -145,14 +142,14 @@ class MainViewModel(
         override fun onConnected(room: Room) {
             Log.d(TAG, "onConnected")
 
-            mainView.init(room.eglBase.eglBaseContext, null)
-            mainView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-            mainView.setEnableHardwareScaler(false)
-            mainView.setMirror(true)
-
-            localPeer = room.localPeer
-            localVideoTrack = room.localPeer.getVideoTracks()["camera"] ?: error("Camera track not found.")
-            localVideoTrack.addRenderer(mainViewRenderer)
+//            mainView.init(room.eglBase.eglBaseContext, null)
+//            mainView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+//            mainView.setEnableHardwareScaler(false)
+//            mainView.setMirror(true)
+            _room.value = room
+            _localPeer.value = room.localPeer
+//            localVideoTrack = room.localPeer.getVideoTracks()["camera"] ?: error("Camera track not found.")
+//            localVideoTrack.addRenderer(mainViewRenderer)
         }
 
         override fun onConnectFailed(room: Room) {
@@ -162,12 +159,17 @@ class MainViewModel(
         override fun onDisconnected(room: Room) {
             Log.d(TAG, "onDisconnected")
 
-            mainView.clearImage()
-            mainView.release()
+//            subView.clearImage()
+//            mainView.clearImage()
+//            subView.release()
+//            mainView.release()
+            _room.value = null
+            _localPeer.value = null
         }
 
         override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {
             Log.d(TAG, "onPeerConnected ${remotePeer.id}")
+
         }
 
         override fun onPeerDisconnected(room: Room, remotePeer: RemotePeer) {
@@ -194,7 +196,13 @@ class MainViewModel(
             remotePeer: RemotePeer,
             remoteVideoTrack: RemoteVideoTrack
         ) {
-            TODO("Not yet implemented")
+            Log.d(TAG, "onVideoTrackEnabled ${remotePeer.id} ${remoteVideoTrack.name}")
+//            subView.init(roomManager.room.eglBase.eglBaseContext, null)
+//            subView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+//            subView.setZOrderMediaOverlay(true);
+//            subView.setEnableHardwareScaler(true)
+//
+//            remoteVideoTrack.addRenderer(subViewRenderer)
         }
 
         override fun onVideoTrackDisabled(

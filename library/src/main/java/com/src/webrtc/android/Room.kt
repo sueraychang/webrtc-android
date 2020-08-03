@@ -193,6 +193,14 @@ class Room private constructor(
                 }
 
                 roomListener.onPeerConnected(this@Room, remotePeer)
+
+                if (remotePeer.getVideoTracks().isNotEmpty()) {
+                    remotePeer.getVideoTracks().forEach { (_, track) ->
+                        if (track.isEnable()) {
+                            remotePeerListener.onVideoTrackEnabled(remotePeer, track)
+                        }
+                    }
+                }
             }
         }
 
