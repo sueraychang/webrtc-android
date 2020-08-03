@@ -31,17 +31,11 @@ class MainViewModel(
     private val _localPeer = MutableLiveData<LocalPeer>()
     val localPeer: LiveData<LocalPeer> = _localPeer
 
-    private lateinit var localVideoTrack: LocalVideoTrack
+    private val _remotePeerEvent = MutableLiveData<Event<Pair<String, Boolean>>>()
+    val remotePeerEvent: LiveData<Event<Pair<String, Boolean>>> = _remotePeerEvent
 
-
-
-//    private lateinit var mainView: SurfaceViewRenderer
-//    private val mainViewRenderer = VideoRenderer()
-//
-//    private lateinit var subView: SurfaceViewRenderer
-//    private val subViewRenderer = VideoRenderer()
-
-    private var isRoomCreatedByMe = false
+    private val _remoteVideoTrack = MutableLiveData<RemoteVideoTrack>()
+    val remoteVideoTrack: LiveData<RemoteVideoTrack> = _remoteVideoTrack
 
     fun connectToRoom(roomName: String) {
         Log.d(TAG, "createRoom")
@@ -52,7 +46,6 @@ class MainViewModel(
         roomManager.connect(roomName, self.id, ICE_URLS)
 
         Log.d(TAG, "room name: $roomName")
-        isRoomCreatedByMe = true
 
         signaling = SignalingManager(signalingListener)
         signaling.connectToRoom(roomName, self)
@@ -61,10 +54,6 @@ class MainViewModel(
     fun leaveRoom() {
         roomManager.disconnect()
         signaling.leaveRoom(self)
-
-        if (isRoomCreatedByMe) {
-            signaling.closeRoom()
-        }
     }
 
     private val signalingListener = object : SignalingManager.SignalingListener {
@@ -141,15 +130,8 @@ class MainViewModel(
 
         override fun onConnected(room: Room) {
             Log.d(TAG, "onConnected")
-
-//            mainView.init(room.eglBase.eglBaseContext, null)
-//            mainView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-//            mainView.setEnableHardwareScaler(false)
-//            mainView.setMirror(true)
             _room.value = room
             _localPeer.value = room.localPeer
-//            localVideoTrack = room.localPeer.getVideoTracks()["camera"] ?: error("Camera track not found.")
-//            localVideoTrack.addRenderer(mainViewRenderer)
         }
 
         override fun onConnectFailed(room: Room) {
@@ -158,22 +140,18 @@ class MainViewModel(
 
         override fun onDisconnected(room: Room) {
             Log.d(TAG, "onDisconnected")
-
-//            subView.clearImage()
-//            mainView.clearImage()
-//            subView.release()
-//            mainView.release()
             _room.value = null
             _localPeer.value = null
         }
 
         override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {
             Log.d(TAG, "onPeerConnected ${remotePeer.id}")
-
+            _remotePeerEvent.value = Event(Pair(remotePeer.id, true))
         }
 
         override fun onPeerDisconnected(room: Room, remotePeer: RemotePeer) {
             Log.d(TAG, "onPeerDisconnected ${remotePeer.id}")
+            _remotePeerEvent.value = Event(Pair(remotePeer.id, false))
         }
     }
 
@@ -197,19 +175,19 @@ class MainViewModel(
             remoteVideoTrack: RemoteVideoTrack
         ) {
             Log.d(TAG, "onVideoTrackEnabled ${remotePeer.id} ${remoteVideoTrack.name}")
-//            subView.init(roomManager.room.eglBase.eglBaseContext, null)
-//            subView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-//            subView.setZOrderMediaOverlay(true);
-//            subView.setEnableHardwareScaler(true)
-//
-//            remoteVideoTrack.addRenderer(subViewRenderer)
+            if (remoteVideoTrack.name == "camera") {
+                _remoteVideoTrack.value = remoteVideoTrack
+            }
         }
 
         override fun onVideoTrackDisabled(
             remotePeer: RemotePeer,
             remoteVideoTrack: RemoteVideoTrack
         ) {
-            TODO("Not yet implemented")
+            Log.d(TAG, "onVideoTrackDisabled ${remotePeer.id} ${remoteVideoTrack.name}")
+            if (remoteVideoTrack.name == "camera") {
+                _remoteVideoTrack.value = null
+            }
         }
 
         override fun onDataTrackEnabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {

@@ -14,6 +14,8 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.src.webrtc.android.LocalVideoTrack
+import com.src.webrtc.android.RemotePeer
+import com.src.webrtc.android.RemoteVideoTrack
 import com.src.webrtc.android.VideoRenderer
 import com.src.webrtc.android.sample.databinding.ActivityMainBinding
 import org.webrtc.RendererCommon
@@ -27,6 +29,9 @@ class MainActivity : AppCompatActivity() {
     private val subViewRenderer = VideoRenderer()
 
     private var localVideoTrack: LocalVideoTrack? = null
+    private var remoteVideoTrack: RemoteVideoTrack? = null
+
+    private var isSwapped = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,17 +82,18 @@ class MainActivity : AppCompatActivity() {
                     init(it.eglBase.eglBaseContext, null)
                     setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
                     setEnableHardwareScaler(false)
-                    setMirror(true)
                     mainViewRenderer.setTarget(this)
                 }
                 binding.subView.apply {
                     init(it.eglBase.eglBaseContext, null)
-                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
                     setZOrderMediaOverlay(true)
                     setEnableHardwareScaler(true)
                     subViewRenderer.setTarget(this)
+                    binding.subView.visibility = View.GONE
                 }
             } else {
+                isSwapped = false
                 binding.options.visibility = View.GONE
                 mainViewRenderer.setTarget(null)
                 subViewRenderer.setTarget(null)
@@ -108,6 +114,21 @@ class MainActivity : AppCompatActivity() {
                 localVideoTrack?.removeRenderer(mainViewRenderer)
             }
         })
+        viewModel.remotePeerEvent.observe(this, EventObserver {
+            if (it.second) {
+                Toast.makeText(this, getString(R.string.remote_peer_connected, it.first), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, getString(R.string.remote_peer_disconnected, it.first), Toast.LENGTH_SHORT).show()
+            }
+        })
+        viewModel.remoteVideoTrack.observe(this, Observer {
+            if (it != null) {
+                remoteVideoTrack = it
+                swapRenderers(true)
+            } else {
+                swapRenderers(false)
+            }
+        })
 
         // Enable Firestore logging
         FirebaseFirestore.setLoggingEnabled(true)
@@ -116,6 +137,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         Log.d(TAG, "onDestroy")
         localVideoTrack?.removeRenderer(mainViewRenderer)
+        remoteVideoTrack?.removeRenderer(subViewRenderer)
 
         mainViewRenderer.setTarget(null)
         subViewRenderer.setTarget(null)
@@ -124,6 +146,28 @@ class MainActivity : AppCompatActivity() {
 
         super.onDestroy()
     }
+
+    private fun swapRenderers(isSwapped: Boolean) {
+        if (this.isSwapped != isSwapped) {
+            this.isSwapped = isSwapped
+            if (isSwapped) {
+                localVideoTrack?.removeRenderer(mainViewRenderer)
+                localVideoTrack?.addRenderer(subViewRenderer)
+                remoteVideoTrack?.addRenderer(mainViewRenderer)
+                binding.subView.setMirror(true)
+                binding.mainView.setMirror(false)
+                binding.subView.visibility = View.VISIBLE
+            } else {
+                localVideoTrack?.removeRenderer(subViewRenderer)
+                localVideoTrack?.addRenderer(mainViewRenderer)
+                remoteVideoTrack?.removeRenderer(mainViewRenderer)
+                binding.subView.setMirror(false)
+                binding.mainView.setMirror(true)
+                binding.subView.visibility = View.GONE
+            }
+        }
+    }
+
 
     //region Runtime Permissions
     override fun onRequestPermissionsResult(

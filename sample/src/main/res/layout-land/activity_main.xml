@@ -13,8 +13,8 @@
 
     <org.webrtc.SurfaceViewRenderer
         android:id="@+id/sub_view"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="130dp"
+        android:layout_height="130dp"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"

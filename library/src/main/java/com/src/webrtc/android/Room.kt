@@ -26,7 +26,7 @@ class Room private constructor(
 
     private val iceCandidatesRecord = mutableMapOf<String, MutableList<IceCandidate>>()
 
-    lateinit var localPeer: LocalPeer
+    var localPeer: LocalPeer? = null
 
     val remotePeers: Map<String, RemotePeer>
         get() = _remotePeers
@@ -39,6 +39,10 @@ class Room private constructor(
 
         localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService)
 
+        _remotePeers.forEach { (id, peer) ->
+            Log.d(TAG, "remotePeer $id $peer")
+        }
+
         roomListener.onConnected(this)
     }
 
@@ -50,7 +54,7 @@ class Room private constructor(
             return
         }
 
-        val remotePeer = RemotePeer(peerId, context, true, localPeer, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
+        val remotePeer = RemotePeer(peerId, context, true, localPeer!!, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
         _remotePeers[peerId] = remotePeer
 
         remotePeer.sdpHandshake()
@@ -58,16 +62,7 @@ class Room private constructor(
 
     fun onPeerLeave(peerId: String) {
         Log.d(TAG, "onPeerLeave $peerId")
-
-        val remotePeer = _remotePeers[peerId]
-        if (remotePeer == null) {
-            Log.e(TAG, "Can't find the remote peer $peerId")
-            return
-        }
-
-        remotePeer.release()
-        _remotePeers.remove(peerId)
-        roomListener.onPeerDisconnected(this, remotePeer)
+        disconnectPeer(peerId)
     }
 
     fun disconnect() {
@@ -78,9 +73,9 @@ class Room private constructor(
             }
             _remotePeers.clear()
         }
-        if (::localPeer.isInitialized) {
-            localPeer.release()
-        }
+
+        localPeer!!.release()
+        localPeer = null
 
         roomListener.onDisconnected(this)
     }
@@ -95,7 +90,7 @@ class Room private constructor(
                     return
                 }
 
-                val remotePeer = RemotePeer(peerId, context, false, localPeer, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
+                val remotePeer = RemotePeer(peerId, context, false, localPeer!!, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
                 _remotePeers[peerId] = remotePeer
 
                 val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SIG_TYPE_OFFER), sdp)
@@ -230,6 +225,33 @@ class Room private constructor(
 
         override fun onPeerConnectionError(id: String, description: String) {
             Log.d(TAG, "onPeerConnectionError $id $description")
+
+            disconnectPeer(id)
+        }
+    }
+
+    private fun disconnectPeer(id: String) {
+        handler.post {
+            Log.d(TAG, "disconnectPeer $id")
+
+            val remotePeer = _remotePeers.remove(id)
+            if (remotePeer == null) {
+                Log.e(TAG, "Can't find the remote peer $id")
+                return@post
+            }
+
+            // TODO: audioTrack disabled
+
+            remotePeer.getVideoTracks().forEach { (name, track) ->
+                if (track.isEnable()) {
+                    remotePeerListener.onVideoTrackDisabled(remotePeer, track)
+                }
+            }
+
+            // TODO: dataTrack disabled
+
+            roomListener.onPeerConnected(this, remotePeer)
+            remotePeer.release()
         }
     }
 

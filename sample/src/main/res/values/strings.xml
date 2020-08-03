@@ -5,4 +5,8 @@
 
     <string name="connect_room_name_needed">Please enter a room name.</string>
 
+    <string name="remote_peer_connected">The remote peer %s is connected.</string>
+
+    <string name="remote_peer_disconnected">The remote peer %s is disconnected.</string>
+
 </resources>
