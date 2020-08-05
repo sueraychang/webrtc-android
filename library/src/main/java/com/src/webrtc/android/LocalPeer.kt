@@ -91,19 +91,24 @@ class LocalPeer(
         }
     }
 
-    override fun addLocalAudioTracks(peerConnection: PeerConnection) {
+    override fun addLocalAudioTracks() {
         // TODO("Not yet implemented")
     }
 
-    override fun addLocalVideoTracks(peerConnection: PeerConnection) {
+    override fun addLocalVideoTracks() {
         Log.d(TAG, "addLocalVideoTracks")
         videoTracks.forEach { (name, track) ->
-            peerConnection.addTrack(track.internalVideoTrack, listOf(name))
+            peerConnection!!.addTrack(track.internalVideoTrack, listOf(name))
         }
     }
 
-    override fun addLocalDataTracks(id: String, peerConnection: PeerConnection) {
+    override fun addLocalDataTracks(id: String) {
         // TODO("Not yet implemented")
+    }
+
+    override fun copyPeerConnection(peerConnection: PeerConnection) {
+        Log.d(TAG, "copyPeerConnection")
+        this.peerConnection = peerConnection
     }
 
     fun getIceServers(): List<IceServer> {

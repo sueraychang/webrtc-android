@@ -14,7 +14,6 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.src.webrtc.android.LocalVideoTrack
-import com.src.webrtc.android.RemotePeer
 import com.src.webrtc.android.RemoteVideoTrack
 import com.src.webrtc.android.VideoRenderer
 import com.src.webrtc.android.sample.databinding.ActivityMainBinding
@@ -71,6 +70,16 @@ class MainActivity : AppCompatActivity() {
                 viewModel.leaveRoom()
                 connectRoom.isEnabled = true
                 roomName.isEnabled = true
+            }
+
+            cameraToggle.setOnClickListener {
+                Log.d(TAG, "on cameraToggle click")
+                viewModel.toggleCamera()
+            }
+
+            cameraSwitch.setOnClickListener {
+                Log.d(TAG, "on cameraSwitch click")
+                viewModel.switchCamera()
             }
         }
 

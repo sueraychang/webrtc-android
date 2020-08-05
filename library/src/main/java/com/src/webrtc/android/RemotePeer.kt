@@ -135,16 +135,20 @@ class RemotePeer(
         // Keep this empty.
     }
 
-    override fun addLocalAudioTracks(peerConnection: PeerConnection) {
-        localPeer.addLocalAudioTracks(peerConnection)
+    override fun addLocalAudioTracks() {
+        localPeer.addLocalAudioTracks()
     }
 
-    override fun addLocalVideoTracks(peerConnection: PeerConnection) {
-        localPeer.addLocalVideoTracks(peerConnection)
+    override fun addLocalVideoTracks() {
+        localPeer.addLocalVideoTracks()
     }
 
-    override fun addLocalDataTracks(id: String, peerConnection: PeerConnection) {
-        localPeer.addLocalDataTracks(id, peerConnection)
+    override fun addLocalDataTracks(id: String) {
+        localPeer.addLocalDataTracks(id)
+    }
+
+    override fun copyPeerConnection(peerConnection: PeerConnection) {
+        localPeer.copyPeerConnection(peerConnection)
     }
 
     fun getAudioTracks(): Map<String, RemoteAudioTrack> {

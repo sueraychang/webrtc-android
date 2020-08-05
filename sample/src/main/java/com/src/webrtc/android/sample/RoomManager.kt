@@ -18,14 +18,17 @@ class RoomManager(
 
     lateinit var room: Room
 
+    lateinit var cameraCaptureManager: CameraCaptureManager
+    lateinit var localVideoTrack: LocalVideoTrack
+
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 
         val videoConstraints = VideoConstraints.Builder()
             .fps(30)
             .resolution(Resolution.HD)
             .build()
-        val cameraCaptureManager = CameraCaptureManager(this.context)
-        val localVideoTrack = LocalVideoTrack(
+        cameraCaptureManager = CameraCaptureManager(this.context)
+        localVideoTrack = LocalVideoTrack(
             "camera",
             true,
             videoConstraints,

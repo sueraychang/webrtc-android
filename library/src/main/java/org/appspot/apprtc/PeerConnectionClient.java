@@ -132,7 +132,7 @@ public abstract class PeerConnectionClient {
   @Nullable
   protected PeerConnectionFactory factory;
   @Nullable
-  private PeerConnection peerConnection;
+  protected PeerConnection peerConnection;
   @Nullable
   private AudioSource audioSource;
   @Nullable protected SurfaceTextureHelper surfaceTextureHelper;
@@ -200,6 +200,8 @@ public abstract class PeerConnectionClient {
     });
   }
 
+
+
   private MediaConstraints copyMediaConstraint(MediaConstraints mediaConstraints) {
     MediaConstraints mc = new MediaConstraints();
     for (MediaConstraints.KeyValuePair pair : mediaConstraints.mandatory) {
@@ -211,17 +213,19 @@ public abstract class PeerConnectionClient {
     return mc;
   }
 
-  public abstract void createLocalAudioTracks();
+  protected abstract void createLocalAudioTracks();
 
-  public abstract void createLocalVideoTracks();
+  protected abstract void createLocalVideoTracks();
 
-  public abstract void addLocalAudioTracks(PeerConnection peerConnection);
+  public abstract void addLocalAudioTracks();
 
-  public abstract void addLocalVideoTracks(PeerConnection peerConnection);
+  public abstract void addLocalVideoTracks();
 
-  public abstract void addLocalDataTracks(String id, PeerConnection peerConnection);
+  public abstract void addLocalDataTracks(String id);
 
-  public void setPeerConnectionEvents(PeerConnectionEvents events) {
+  public abstract void copyPeerConnection(final PeerConnection peerConnection);
+
+  protected void setPeerConnectionEvents(PeerConnectionEvents events) {
     this.events = events;
   }
   // --- Robin: customization ---
@@ -461,11 +465,11 @@ public abstract class PeerConnectionClient {
   }
 
   // +++ Robin: split close function for LocalPeer & RemotePeer +++
-  public void remotePeerClose() {
+  protected void remotePeerClose() {
     executor.execute(() -> remotePeerCloseInternal());
   }
 
-  public void localPeerClose() {
+  protected void localPeerClose() {
     executor.execute(() -> localPeerCloseInternal());
   }
   // --- Robin: split close function for LocalPeer & RemotePeer ---
@@ -690,6 +694,8 @@ public abstract class PeerConnectionClient {
 
     peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
 
+    copyPeerConnection(peerConnection);
+
     if (dataChannelEnabled) {
       DataChannel.Init init = new DataChannel.Init();
       init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
@@ -710,7 +716,7 @@ public abstract class PeerConnectionClient {
     if (isVideoCallEnabled()) {
       // +++ Robin: add video track to peer connection +++
 //      peerConnection.addTrack(createVideoTrack(videoCapturer), mediaStreamLabels);
-      addLocalVideoTracks(peerConnection);
+      addLocalVideoTracks();
       // --- Robin: add video track to peer connection ---
       // We can add the renderers right away because we don't need to wait for an
       // answer to get the remote track.
@@ -725,13 +731,13 @@ public abstract class PeerConnectionClient {
     // +++ Robin: add audio track to peer connection +++
 //	  peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
     if (isAudioTrackEnabled) {
-      addLocalAudioTracks(peerConnection);
+      addLocalAudioTracks();
     }
     // --- Robin: add audio track to peer connection ---
 
     // +++ Robin: add data track to peer connection +++
     if (isDataTrackEnabled) {
-      addLocalDataTracks(null, peerConnection);
+      addLocalDataTracks(null);
     }
     // --- Robin: add data track to peer connection ---
     if (isVideoCallEnabled()) {

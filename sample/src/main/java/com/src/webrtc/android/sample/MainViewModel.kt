@@ -56,6 +56,26 @@ class MainViewModel(
         signaling.leaveRoom(self)
     }
 
+    fun toggleCamera() {
+//        roomManager.localVideoTrack.
+//        roomManager.localVideoTrack.enable(!roomManager.localVideoTrack.isEnable())
+        _localPeer.value?.let {
+            it.removeLocalVideoTracks()
+        }
+    }
+
+    fun switchCamera() {
+        roomManager.cameraCaptureManager.switchCamera(object: Listener.CameraSwitchListener {
+            override fun onCameraSwitchDone(isFrontCamera: Boolean) {
+                Log.d(TAG, "onCameraSwitchDone, isFrontCamer: $isFrontCamera")
+            }
+
+            override fun onCameraSwitchError(error: String) {
+                Log.e(TAG, "onCameraSwitchError: $error")
+            }
+        })
+    }
+
     private val signalingListener = object : SignalingManager.SignalingListener {
         override fun onPeerJoinReceived(peerInfo: PeerInfo) {
             if (peerInfo != self) {
