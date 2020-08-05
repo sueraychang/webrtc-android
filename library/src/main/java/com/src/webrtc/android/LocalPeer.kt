@@ -13,7 +13,7 @@ class LocalPeer(
     connectionParameters: ConnectParameters,
     peerConnectionParameters: PeerConnectionParameters,
     executorService: ExecutorService
-): Peer(id, context, eglBase, peerConnectionParameters, executorService) {
+) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
 
     private val audioTracks = mutableMapOf<String, LocalAudioTrack>()
     private val videoTracks = mutableMapOf<String, LocalVideoTrack>()
@@ -50,7 +50,7 @@ class LocalPeer(
         createPeerConnectionFactory(PeerConnectionFactory.Options())
     }
 
-    private val localVideoTrackEvents = object: LocalVideoTrack.LocalVideoTrackEvents {
+    private val localVideoTrackEvents = object : LocalVideoTrack.LocalVideoTrackEvents {
         override fun setEnable(name: String, isEnable: Boolean) {
             // TODO("Not yet implemented")
         }
@@ -79,15 +79,25 @@ class LocalPeer(
         }
 
         for ((name, track) in videoTracks) {
-            surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+            surfaceTextureHelper =
+                SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
             videoSource = factory!!.createVideoSource(track.videoCapturer.isScreencast)
-            track.videoCapturer.initialize(surfaceTextureHelper, context, videoSource!!.capturerObserver)
+            track.videoCapturer.initialize(
+                surfaceTextureHelper,
+                context,
+                videoSource!!.capturerObserver
+            )
             val width = track.videoConstraints.resolution.width
             val height = track.videoConstraints.resolution.height
             val fps = track.videoConstraints.fps
             track.videoCapturer.startCapture(width, height, fps)
             val internalTrack = factory!!.createVideoTrack(name, videoSource)
-            track.initInternalVideoTrack(internalTrack, executor, localVideoTrackEvents, surfaceTextureHelper!!)
+            track.initInternalVideoTrack(
+                internalTrack,
+                executor,
+                localVideoTrackEvents,
+                surfaceTextureHelper!!
+            )
         }
     }
 
@@ -103,7 +113,14 @@ class LocalPeer(
     }
 
     override fun addLocalDataTracks(id: String) {
-        // TODO("Not yet implemented")
+        Log.d(TAG, "addLocalDataTracks")
+        dataTracks.forEach { (name, track) ->
+            val init = DataChannel.Init()
+            init.ordered = track.options.ordered
+            init.maxRetransmitTimeMs = track.options.maxPacketLifeTime
+            init.maxRetransmits = track.options.maxRetransmits
+            track.initInternalDataChannel(id, peerConnection!!.createDataChannel(name, init))
+        }
     }
 
     override fun copyPeerConnection(peerConnection: PeerConnection) {

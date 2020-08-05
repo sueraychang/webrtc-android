@@ -57,11 +57,7 @@ class MainViewModel(
     }
 
     fun toggleCamera() {
-//        roomManager.localVideoTrack.
-//        roomManager.localVideoTrack.enable(!roomManager.localVideoTrack.isEnable())
-        _localPeer.value?.let {
-            it.removeLocalVideoTracks()
-        }
+        roomManager.localVideoTrack.enable(!roomManager.localVideoTrack.isEnable())
     }
 
     fun switchCamera() {
@@ -210,12 +206,8 @@ class MainViewModel(
             }
         }
 
-        override fun onDataTrackEnabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
-            TODO("Not yet implemented")
-        }
-
-        override fun onDataTrackDisabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
-            TODO("Not yet implemented")
+        override fun onDataTrackReady(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
+            Log.d(TAG, "onDataTrackReady ${remotePeer.id} ${remoteDataTrack.name}")
         }
     }
 

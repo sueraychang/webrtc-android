@@ -20,6 +20,7 @@ class RoomManager(
 
     lateinit var cameraCaptureManager: CameraCaptureManager
     lateinit var localVideoTrack: LocalVideoTrack
+    lateinit var localDataTrack: LocalDataTrack
 
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 
@@ -34,9 +35,11 @@ class RoomManager(
             videoConstraints,
             cameraCaptureManager.videoCapturer
         )
+        localDataTrack = LocalDataTrack("data", true, DataTrackOptions.Builder().build())
 
         val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls)
             .videoTracks(listOf(localVideoTrack))
+            .dataTracks(listOf(localDataTrack))
             .build()
 
         room = Room.connect(

@@ -1,17 +1,12 @@
 package com.src.webrtc.android
 
-import java.util.concurrent.ExecutorService
+import org.webrtc.DataChannel
 
 class RemoteDataTrack(
     override val name: String,
-    override val enable: Boolean
+    override val enable: Boolean,
+    private val dataChannel: DataChannel
 ) : DataTrack() {
-
-    override var executor: ExecutorService? = null
-
-    override fun enable(isEnable: Boolean) {
-        TODO("Not yet implemented")
-    }
 
     override fun release() {
         TODO("Not yet implemented")
