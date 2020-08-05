@@ -696,23 +696,25 @@ public abstract class PeerConnectionClient {
 
     copyPeerConnection(peerConnection);
 
-    if (dataChannelEnabled) {
-      DataChannel.Init init = new DataChannel.Init();
-      init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
-      init.negotiated = peerConnectionParameters.dataChannelParameters.negotiated;
-      init.maxRetransmits = peerConnectionParameters.dataChannelParameters.maxRetransmits;
-      init.maxRetransmitTimeMs = peerConnectionParameters.dataChannelParameters.maxRetransmitTimeMs;
-      init.id = peerConnectionParameters.dataChannelParameters.id;
-      init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
-      dataChannel = peerConnection.createDataChannel("ApprtcDemo data", init);
-    }
+    // +++ Robin: Move to data track +++
+//    if (dataChannelEnabled) {
+//      DataChannel.Init init = new DataChannel.Init();
+//      init.ordered = peerConnectionParameters.dataChannelParameters.ordered;
+//      init.negotiated = peerConnectionParameters.dataChannelParameters.negotiated;
+//      init.maxRetransmits = peerConnectionParameters.dataChannelParameters.maxRetransmits;
+//      init.maxRetransmitTimeMs = peerConnectionParameters.dataChannelParameters.maxRetransmitTimeMs;
+//      init.id = peerConnectionParameters.dataChannelParameters.id;
+//      init.protocol = peerConnectionParameters.dataChannelParameters.protocol;
+//      dataChannel = peerConnection.createDataChannel("ApprtcDemo data", init);
+//    }
+    // --- Robin: Move to data track ---
     isInitiator = false;
 
     // Set INFO libjingle logging.
     // NOTE: this _must_ happen while |factory| is alive!
     Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO);
 
-    List<String> mediaStreamLabels = Collections.singletonList("ARDAMS");
+//    List<String> mediaStreamLabels = Collections.singletonList("ARDAMS");
     if (isVideoCallEnabled()) {
       // +++ Robin: add video track to peer connection +++
 //      peerConnection.addTrack(createVideoTrack(videoCapturer), mediaStreamLabels);
@@ -737,7 +739,7 @@ public abstract class PeerConnectionClient {
 
     // +++ Robin: add data track to peer connection +++
     if (isDataTrackEnabled) {
-      addLocalDataTracks(null);
+      addLocalDataTracks("");
     }
     // --- Robin: add data track to peer connection ---
     if (isVideoCallEnabled()) {
@@ -1472,16 +1474,17 @@ public abstract class PeerConnectionClient {
     @Override
     public void onDataChannel(final DataChannel dc) {
       Log.d(TAG, "New Data channel " + dc.label());
-
       if (!dataChannelEnabled)
         return;
 
       // +++ Robin: Deliver onDataChannel event to front +++
-      if (events == null) {
-        return;
-      }
+      executor.execute(() -> {
+        if (events == null) {
+          return;
+        }
 
-      events.onDataChannel(dc);
+        events.onDataChannel(dc);
+      });
       // --- Robin: Deliver onDataChannel event to front ---
 
       // +++ Robin: We don't use this observer +++

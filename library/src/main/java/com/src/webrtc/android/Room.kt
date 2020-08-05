@@ -204,7 +204,18 @@ class Room private constructor(
         }
 
         override fun onDataChannel(id: String, label: String) {
-            TODO("Not yet implemented")
+            handler.post {
+                Log.d(TAG, "onDataChannel $id $label")
+                val remotePeer = _remotePeers[id]
+                if (remotePeer == null) {
+                    Log.e(TAG, "Remote peer $id not found")
+                    return@post
+                }
+
+                remotePeer.getDataTracks()[label]?.let {
+                    remotePeerListener.onDataTrackReady(remotePeer, it)
+                }
+            }
         }
 
         override fun onMessage(id: String, label: String, buffer: DataChannel.Buffer) {

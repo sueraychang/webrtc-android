@@ -109,6 +109,9 @@ class RemotePeer(
 
         override fun onDataChannel(dc: DataChannel) {
             Log.d(TAG, "onDataChannel")
+            val remoteDataTrack = RemoteDataTrack(dc.label(), true, dc)
+            dataTracks[dc.label()] = remoteDataTrack
+            events.onDataChannel(id, dc.label())
         }
     }
 
@@ -144,7 +147,7 @@ class RemotePeer(
     }
 
     override fun addLocalDataTracks(id: String) {
-        localPeer.addLocalDataTracks(id)
+        localPeer.addLocalDataTracks(this.id)
     }
 
     override fun copyPeerConnection(peerConnection: PeerConnection) {

@@ -34,9 +34,7 @@ interface Listener {
 
         fun onVideoTrackDisabled(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack)
 
-        fun onDataTrackEnabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack)
-
-        fun onDataTrackDisabled(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack)
+        fun onDataTrackReady(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack)
     }
 
     interface RemoteDataListener {
