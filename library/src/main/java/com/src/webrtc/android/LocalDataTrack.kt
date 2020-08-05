@@ -7,7 +7,6 @@ import java.nio.charset.Charset
 
 class LocalDataTrack(
     override val name: String,
-    override val enable: Boolean,
     val options: DataTrackOptions
 ) : DataTrack() {
 

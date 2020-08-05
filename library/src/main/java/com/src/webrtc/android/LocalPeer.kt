@@ -59,8 +59,16 @@ class LocalPeer(
     override fun release() {
         Log.d(TAG, "release")
 
+        audioTracks.clear()
+        videoTracks.forEach { (_, track) ->
+            track.release()
+        }
+        videoTracks.clear()
+        dataTracks.forEach { (_, track) ->
+            track.release()
+        }
+        dataTracks.clear()
         localPeerClose()
-
         Log.d(TAG, "release done")
     }
 

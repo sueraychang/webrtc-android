@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutorService
 
 class LocalVideoTrack(
     override val name: String,
-    override val enable: Boolean,
     val videoConstraints: VideoConstraints,
     val videoCapturer: VideoCapturer
 ) : VideoTrack() {

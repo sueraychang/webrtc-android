@@ -31,11 +31,10 @@ class RoomManager(
         cameraCaptureManager = CameraCaptureManager(this.context)
         localVideoTrack = LocalVideoTrack(
             "camera",
-            true,
             videoConstraints,
             cameraCaptureManager.videoCapturer
         )
-        localDataTrack = LocalDataTrack("data", true, DataTrackOptions.Builder().build())
+        localDataTrack = LocalDataTrack("data", DataTrackOptions.Builder().build())
 
         val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls)
             .videoTracks(listOf(localVideoTrack))

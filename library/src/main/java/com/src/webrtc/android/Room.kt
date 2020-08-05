@@ -6,6 +6,8 @@ import android.os.Looper
 import android.util.Log
 import org.appspot.apprtc.PeerConnectionClient
 import org.webrtc.*
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 import java.util.concurrent.Executors
 
 class Room private constructor(
@@ -192,7 +194,7 @@ class Room private constructor(
                 if (remotePeer.getVideoTracks().isNotEmpty()) {
                     remotePeer.getVideoTracks().forEach { (_, track) ->
                         if (track.isEnable()) {
-                            remotePeerListener.onVideoTrackEnabled(remotePeer, track)
+                            remotePeerListener.onVideoTrackReady(remotePeer, track)
                         }
                     }
                 }
@@ -219,7 +221,29 @@ class Room private constructor(
         }
 
         override fun onMessage(id: String, label: String, buffer: DataChannel.Buffer) {
-            TODO("Not yet implemented")
+            val copiedBuffer = DataChannel.Buffer(cloneByteBuffer(buffer.data), buffer.binary)
+            handler.post {
+                Log.d(TAG, "onMessage, id: $id, label: $label")
+
+                val remotePeer = _remotePeers[id]
+                if (remotePeer == null) {
+                    Log.e(TAG, "Remote peer $id not found")
+                    return@post
+                }
+
+                remotePeer.getDataTracks()[label]?.let {
+                    if (!copiedBuffer.binary) {
+                        val data = copiedBuffer.data
+                        val bytes = ByteArray(data.capacity())
+                        data.get(bytes)
+                        val msg = String(bytes, Charset.forName("UTF-8"))
+                        Log.d(TAG, "onMessage: $msg")
+                        remoteDataListener.onMessage(remotePeer, it, msg)
+                    } else {
+                        remoteDataListener.onMessage(remotePeer, it, copiedBuffer.data)
+                    }
+                }
+            }
         }
 
         override fun onPeerConnectionClose(id: String) {
@@ -251,19 +275,18 @@ class Room private constructor(
                 return@post
             }
 
-            // TODO: audioTrack disabled
-
-            remotePeer.getVideoTracks().forEach { (name, track) ->
-                if (track.isEnable()) {
-                    remotePeerListener.onVideoTrackDisabled(remotePeer, track)
-                }
-            }
-
-            // TODO: dataTrack disabled
-
             roomListener.onPeerConnected(this, remotePeer)
             remotePeer.release()
         }
+    }
+
+    private fun cloneByteBuffer(original: ByteBuffer): ByteBuffer {
+        val clone = ByteBuffer.allocate(original.capacity())
+        original.rewind()
+        clone.put(original)
+        original.rewind()
+        clone.flip()
+        return clone
     }
 
     companion object {

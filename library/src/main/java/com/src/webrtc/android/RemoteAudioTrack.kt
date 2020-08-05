@@ -3,8 +3,7 @@ package com.src.webrtc.android
 import java.util.concurrent.ExecutorService
 
 class RemoteAudioTrack(
-    override val name: String,
-    override val enable: Boolean
+    override val name: String
 ): AudioTrack() {
 
     override var executor: ExecutorService? = null

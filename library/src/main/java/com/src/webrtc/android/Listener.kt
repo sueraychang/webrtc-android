@@ -26,13 +26,9 @@ interface Listener {
 
     interface RemotePeerListener {
 
-        fun onAudioTrackEnabled(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack)
+        fun onAudioTrackReady(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack)
 
-        fun onAudioTrackDisabled(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack)
-
-        fun onVideoTrackEnabled(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack)
-
-        fun onVideoTrackDisabled(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack)
+        fun onVideoTrackReady(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack)
 
         fun onDataTrackReady(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack)
     }

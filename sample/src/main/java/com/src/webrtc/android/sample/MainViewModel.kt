@@ -172,37 +172,14 @@ class MainViewModel(
     }
 
     private val remotePeerListener = object : Listener.RemotePeerListener {
-        override fun onAudioTrackEnabled(
-            remotePeer: RemotePeer,
-            remoteAudioTrack: RemoteAudioTrack
-        ) {
-            TODO("Not yet implemented")
+        override fun onAudioTrackReady(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack) {
+            Log.d(TAG, "onAudioTrackReady ${remotePeer.id} ${remoteAudioTrack.name}")
         }
 
-        override fun onAudioTrackDisabled(
-            remotePeer: RemotePeer,
-            remoteAudioTrack: RemoteAudioTrack
-        ) {
-            TODO("Not yet implemented")
-        }
-
-        override fun onVideoTrackEnabled(
-            remotePeer: RemotePeer,
-            remoteVideoTrack: RemoteVideoTrack
-        ) {
-            Log.d(TAG, "onVideoTrackEnabled ${remotePeer.id} ${remoteVideoTrack.name}")
+        override fun onVideoTrackReady(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack) {
+            Log.d(TAG, "onVideoTrackReady ${remotePeer.id} ${remoteVideoTrack.name}")
             if (remoteVideoTrack.name == "camera") {
                 _remoteVideoTrack.value = remoteVideoTrack
-            }
-        }
-
-        override fun onVideoTrackDisabled(
-            remotePeer: RemotePeer,
-            remoteVideoTrack: RemoteVideoTrack
-        ) {
-            Log.d(TAG, "onVideoTrackDisabled ${remotePeer.id} ${remoteVideoTrack.name}")
-            if (remoteVideoTrack.name == "camera") {
-                _remoteVideoTrack.value = null
             }
         }
 

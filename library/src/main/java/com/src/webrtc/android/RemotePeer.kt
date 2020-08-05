@@ -91,7 +91,7 @@ class RemotePeer(
             if (stream.videoTracks.isNotEmpty()) {
                 stream.videoTracks.forEach {
                     Log.d(TAG, "video stream ${it.id()}")
-                    val remoteVideoTrack = RemoteVideoTrack(stream.id, true, executor, it)
+                    val remoteVideoTrack = RemoteVideoTrack(stream.id, executor, it)
                     videoTracks[remoteVideoTrack.name] = remoteVideoTrack
                 }
             }
@@ -109,9 +109,16 @@ class RemotePeer(
 
         override fun onDataChannel(dc: DataChannel) {
             Log.d(TAG, "onDataChannel")
-            val remoteDataTrack = RemoteDataTrack(dc.label(), true, dc)
+            val remoteDataTrack = RemoteDataTrack(dc.label(), dc, dataTrackEvents)
             dataTracks[dc.label()] = remoteDataTrack
             events.onDataChannel(id, dc.label())
+        }
+    }
+
+    private val dataTrackEvents = object: DataTrack.Events {
+        override fun onMessage(label: String, buffer: DataChannel.Buffer) {
+            Log.d(TAG, "onMessage $label")
+            events.onMessage(id, label, buffer)
         }
     }
 
@@ -125,8 +132,16 @@ class RemotePeer(
 
     override fun release() {
         Log.d(TAG, "release")
+        audioTracks.clear()
+        videoTracks.forEach { (_, track) ->
+            track.release()
+        }
+        videoTracks.clear()
+        dataTracks.forEach { (_, track) ->
+            track.release()
+        }
+        dataTracks.clear()
         remotePeerClose()
-
         Log.d(TAG, "release done")
     }
 

@@ -4,7 +4,6 @@ import java.util.concurrent.ExecutorService
 
 class RemoteVideoTrack(
     override val name: String,
-    override val enable: Boolean,
     executorService: ExecutorService,
     videoTrack: org.webrtc.VideoTrack
 ) : VideoTrack() {
