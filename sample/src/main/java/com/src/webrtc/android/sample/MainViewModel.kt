@@ -5,13 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.FirebaseFirestore
 import com.src.webrtc.android.*
 import com.src.webrtc.android.sample.data.*
 import org.webrtc.IceCandidate
-import org.webrtc.RendererCommon
-import org.webrtc.SurfaceViewRenderer
 import java.nio.ByteBuffer
 import java.util.*
 
@@ -37,6 +33,9 @@ class MainViewModel(
     private val _remoteVideoTrack = MutableLiveData<RemoteVideoTrack>()
     val remoteVideoTrack: LiveData<RemoteVideoTrack> = _remoteVideoTrack
 
+    val isMicEnabled = MutableLiveData(true)
+    val isCameraEnabled = MutableLiveData(true)
+
     fun connectToRoom(roomName: String) {
         Log.d(TAG, "createRoom")
 
@@ -56,12 +55,18 @@ class MainViewModel(
         signaling.leaveRoom(self)
     }
 
+    fun toggleMic() {
+        isMicEnabled.value = !(isMicEnabled.value ?: false)
+        roomManager.localAudioTrack.enable(isMicEnabled.value ?: true)
+    }
+
     fun toggleCamera() {
-        roomManager.localVideoTrack.enable(!roomManager.localVideoTrack.isEnable())
+        isCameraEnabled.value = !(isCameraEnabled.value ?: false)
+        roomManager.localVideoTrack.enable(isCameraEnabled.value ?: true)
     }
 
     fun switchCamera() {
-        roomManager.cameraCaptureManager.switchCamera(object: Listener.CameraSwitchListener {
+        roomManager.cameraCaptureManager.switchCamera(object : Listener.CameraSwitchListener {
             override fun onCameraSwitchDone(isFrontCamera: Boolean) {
                 Log.d(TAG, "onCameraSwitchDone, isFrontCamer: $isFrontCamera")
             }
@@ -96,7 +101,10 @@ class MainViewModel(
 
         override fun onCandidateReceived(sdpCandidate: SdpCandidate) {
             if (sdpCandidate.to == self.id) {
-                Log.d(TAG, "onCandidateReceived: ${sdpCandidate.from} ${sdpCandidate.to} ${sdpCandidate.candidate}")
+                Log.d(
+                    TAG,
+                    "onCandidateReceived: ${sdpCandidate.from} ${sdpCandidate.to} ${sdpCandidate.candidate}"
+                )
                 roomManager.onCandidateReceived(sdpCandidate)
             }
         }

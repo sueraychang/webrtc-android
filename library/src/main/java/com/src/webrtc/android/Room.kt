@@ -18,7 +18,7 @@ class Room private constructor(
     private val remoteDataListener: Listener.RemoteDataListener
 ){
 
-    val eglBase = EglBase.create()
+    val eglBase: EglBase = EglBase.create()
 
     private val executorService = Executors.newSingleThreadExecutor()
 
@@ -39,7 +39,7 @@ class Room private constructor(
 
         peerConnectionParameters = ConferenceParameters(context).getPeerConnectionParameters(connectParameters)
 
-        localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService)
+        localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService, localPeerEvents)
 
         _remotePeers.forEach { (id, peer) ->
             Log.d(TAG, "remotePeer $id $peer")
@@ -153,6 +153,17 @@ class Room private constructor(
         eglBase.release()
     }
 
+    private val localPeerEvents = object: LocalPeer.Events {
+
+        override fun setAudioEnable(id: String, name: String, isEnabled: Boolean) {
+            // TODO: Do nothing
+        }
+
+        override fun setVideoEnable(id: String, name: String, isEnabled: Boolean) {
+            // TODO: Do nothing
+        }
+    }
+
     private val remotePeerEvents = object: RemotePeerEvents {
         override fun onLocalDescription(to: String, type: String, sdp: String) {
             handler.post {
@@ -190,13 +201,11 @@ class Room private constructor(
                 }
 
                 roomListener.onPeerConnected(this@Room, remotePeer)
-
-                if (remotePeer.getVideoTracks().isNotEmpty()) {
-                    remotePeer.getVideoTracks().forEach { (_, track) ->
-                        if (track.isEnable()) {
-                            remotePeerListener.onVideoTrackReady(remotePeer, track)
-                        }
-                    }
+                remotePeer.getAudioTracks().forEach { (_, track) ->
+                    remotePeerListener.onAudioTrackReady(remotePeer, track)
+                }
+                remotePeer.getVideoTracks().forEach { (_, track) ->
+                    remotePeerListener.onVideoTrackReady(remotePeer, track)
                 }
             }
         }
@@ -275,7 +284,7 @@ class Room private constructor(
                 return@post
             }
 
-            roomListener.onPeerConnected(this, remotePeer)
+            roomListener.onPeerDisconnected(this, remotePeer)
             remotePeer.release()
         }
     }

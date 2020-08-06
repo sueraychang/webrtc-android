@@ -90,15 +90,16 @@ class RemotePeer(
             Log.d(TAG, "onAddStream $stream")
             if (stream.videoTracks.isNotEmpty()) {
                 stream.videoTracks.forEach {
-                    Log.d(TAG, "video stream ${it.id()}")
+                    Log.d(TAG, "video stream ${stream.id}")
                     val remoteVideoTrack = RemoteVideoTrack(stream.id, executor, it)
                     videoTracks[remoteVideoTrack.name] = remoteVideoTrack
                 }
             }
             if (stream.audioTracks.isNotEmpty()) {
                 stream.audioTracks.forEach {
-                    Log.d(TAG, "audio stream ${it.id()}")
-
+                    Log.d(TAG, "audio stream ${stream.id}")
+                    val remoteAudioTrack = RemoteAudioTrack(stream.id, executor, it)
+                    audioTracks[remoteAudioTrack.name] = remoteAudioTrack
                 }
             }
         }

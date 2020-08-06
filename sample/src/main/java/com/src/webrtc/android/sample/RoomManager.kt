@@ -19,25 +19,28 @@ class RoomManager(
     lateinit var room: Room
 
     lateinit var cameraCaptureManager: CameraCaptureManager
+    lateinit var localAudioTrack: LocalAudioTrack
     lateinit var localVideoTrack: LocalVideoTrack
     lateinit var localDataTrack: LocalDataTrack
 
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 
-        val videoConstraints = VideoConstraints.Builder()
-            .fps(30)
-            .resolution(Resolution.HD)
-            .build()
-        cameraCaptureManager = CameraCaptureManager(this.context)
-        localVideoTrack = LocalVideoTrack(
-            "camera",
-            videoConstraints,
-            cameraCaptureManager.videoCapturer
-        )
+        localAudioTrack = LocalAudioTrack("mic", AudioOptions.Builder().build())
+//        val videoConstraints = VideoConstraints.Builder()
+//            .fps(30)
+//            .resolution(Resolution.HD)
+//            .build()
+//        cameraCaptureManager = CameraCaptureManager(this.context)
+//        localVideoTrack = LocalVideoTrack(
+//            "camera",
+//            videoConstraints,
+//            cameraCaptureManager.videoCapturer
+//        )
         localDataTrack = LocalDataTrack("data", DataTrackOptions.Builder().build())
 
         val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls)
-            .videoTracks(listOf(localVideoTrack))
+            .audioTracks(listOf(localAudioTrack))
+//            .videoTracks(listOf(localVideoTrack))
             .dataTracks(listOf(localDataTrack))
             .build()
 

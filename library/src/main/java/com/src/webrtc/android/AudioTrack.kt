@@ -6,7 +6,9 @@ abstract class AudioTrack: Track {
 
     abstract var executor: ExecutorService?
 
-    abstract fun enable(isEnable: Boolean)
+    abstract var internalAudioTrack: org.webrtc.AudioTrack?
 
-    abstract fun release()
+    abstract fun isEnable() : Boolean
+
+    abstract fun enable(isEnable: Boolean)
 }
