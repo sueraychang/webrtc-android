@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,13 +36,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         viewModel = ViewModelProvider(
             this,
             ViewModelFactory.getInstance(application)
         ).get(MainViewModel::class.java)
+
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.viewModel = this.viewModel
+        binding.lifecycleOwner = this
 
         binding.apply {
             options.visibility = View.GONE
@@ -58,7 +61,7 @@ class MainActivity : AppCompatActivity() {
                     if (isPermissionsGranted()) {
                         connectRoom.isEnabled = false
                         roomName.isEnabled = false
-                        viewModel.connectToRoom(binding.roomName.text.toString())
+                        this@MainActivity.viewModel.connectToRoom(binding.roomName.text.toString())
                     } else {
                         requestPermissions()
                     }
@@ -67,20 +70,25 @@ class MainActivity : AppCompatActivity() {
 
             hangUp.setOnClickListener {
                 Log.d(TAG, "on hangUp click")
-                viewModel.leaveRoom()
+                this@MainActivity.viewModel.leaveRoom()
                 connectRoom.isEnabled = true
                 roomName.isEnabled = true
             }
 
-            cameraToggle.setOnClickListener {
-                Log.d(TAG, "on cameraToggle click")
-                viewModel.toggleCamera()
-            }
-
-            cameraSwitch.setOnClickListener {
-                Log.d(TAG, "on cameraSwitch click")
-                viewModel.switchCamera()
-            }
+//            micToggle.setOnClickListener {
+//                Log.d(TAG, "on micToggle click")
+//                viewModel.toggleMic()
+//            }
+//
+//            cameraToggle.setOnClickListener {
+//                Log.d(TAG, "on cameraToggle click")
+//                viewModel.toggleCamera()
+//            }
+//
+//            cameraSwitch.setOnClickListener {
+//                Log.d(TAG, "on cameraSwitch click")
+//                viewModel.switchCamera()
+//            }
         }
 
         viewModel.room.observe(this, Observer {
@@ -117,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.localPeer.observe(this, Observer {
             Log.d(TAG, "observe localPeer $it")
             if (it != null) {
-                localVideoTrack = it.getVideoTracks().getValue("camera")
+                localVideoTrack = it.getVideoTracks()["camera"]
                 localVideoTrack?.addRenderer(mainViewRenderer)
             } else {
                 localVideoTrack?.removeRenderer(mainViewRenderer)

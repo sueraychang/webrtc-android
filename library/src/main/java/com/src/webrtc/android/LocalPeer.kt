@@ -12,8 +12,16 @@ class LocalPeer(
     eglBase: EglBase,
     connectionParameters: ConnectParameters,
     peerConnectionParameters: PeerConnectionParameters,
-    executorService: ExecutorService
+    executorService: ExecutorService,
+    events: Events
 ) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
+
+    interface Events {
+
+        fun setAudioEnable(id: String, name: String, isEnabled: Boolean)
+
+        fun setVideoEnable(id: String, name: String, isEnabled: Boolean)
+    }
 
     private val audioTracks = mutableMapOf<String, LocalAudioTrack>()
     private val videoTracks = mutableMapOf<String, LocalVideoTrack>()
@@ -50,9 +58,15 @@ class LocalPeer(
         createPeerConnectionFactory(PeerConnectionFactory.Options())
     }
 
-    private val localVideoTrackEvents = object : LocalVideoTrack.LocalVideoTrackEvents {
+    private val localAudioTrackEvents = object: LocalAudioTrack.LocalAudioTrackEvents {
         override fun setEnable(name: String, isEnable: Boolean) {
-            // TODO("Not yet implemented")
+            events.setAudioEnable(id, name, isEnable)
+        }
+    }
+
+    private val localVideoTrackEvents = object: LocalVideoTrack.LocalVideoTrackEvents {
+        override fun setEnable(name: String, isEnable: Boolean) {
+            events.setVideoEnable(id, name, isEnable)
         }
     }
 
@@ -77,7 +91,25 @@ class LocalPeer(
             return
         }
 
-        TODO("createLocalAudioTracks")
+        for ((name, track) in audioTracks) {
+            val constraints = MediaConstraints()
+
+            if (!track.audioOptions.echoCancellation) {
+                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"))
+            }
+            if (!track.audioOptions.autoGainControl) {
+                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"))
+            }
+            if (!track.audioOptions.highPassFilter) {
+                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"))
+            }
+            if (!track.audioOptions.noiseSuppression) {
+                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"))
+            }
+            audioSource = factory!!.createAudioSource(constraints)
+            val internalTrack = factory!!.createAudioTrack(name, audioSource)
+            track.initInternalAudioTrack(internalTrack, executor, localAudioTrackEvents)
+        }
     }
 
     override fun createLocalVideoTracks() {
@@ -110,7 +142,10 @@ class LocalPeer(
     }
 
     override fun addLocalAudioTracks() {
-        // TODO("Not yet implemented")
+        Log.d(TAG, "addLocalAudioTracks")
+        audioTracks.forEach { (name, track) ->
+            peerConnection!!.addTrack(track.internalAudioTrack, listOf(name))
+        }
     }
 
     override fun addLocalVideoTracks() {

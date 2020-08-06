@@ -103,10 +103,10 @@ public abstract class PeerConnectionClient {
   private static final String DISABLE_WEBRTC_AGC_FIELDTRIAL =
       "WebRTC-Audio-MinimizeResamplingOnMobile/Enabled/";
   private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
-  private static final String AUDIO_ECHO_CANCELLATION_CONSTRAINT = "googEchoCancellation";
-  private static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
-  private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
-  private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
+  protected static final String AUDIO_ECHO_CANCELLATION_CONSTRAINT = "googEchoCancellation";
+  protected static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
+  protected static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
+  protected static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
   private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
   private static final int HD_VIDEO_WIDTH = 1280;
   private static final int HD_VIDEO_HEIGHT = 720;
@@ -134,7 +134,7 @@ public abstract class PeerConnectionClient {
   @Nullable
   protected PeerConnection peerConnection;
   @Nullable
-  private AudioSource audioSource;
+  protected AudioSource audioSource;
   @Nullable protected SurfaceTextureHelper surfaceTextureHelper;
   @Nullable protected VideoSource videoSource;
   private boolean preferIsac;
@@ -460,9 +460,11 @@ public abstract class PeerConnectionClient {
     });
   }
 
-  public void close() {
-    executor.execute(this ::closeInternal);
-  }
+  // +++ Robin: This method is not used. +++
+//  public void close() {
+//    executor.execute(this ::closeInternal);
+//  }
+  // --- Robin: This method is not used. ---
 
   // +++ Robin: split close function for LocalPeer & RemotePeer +++
   protected void remotePeerClose() {
@@ -629,38 +631,44 @@ public abstract class PeerConnectionClient {
 
   private void createMediaConstraintsInternal() {
     // Create video constraints if video call is enabled.
-    if (isVideoCallEnabled()) {
-      videoWidth = peerConnectionParameters.videoWidth;
-      videoHeight = peerConnectionParameters.videoHeight;
-      videoFps = peerConnectionParameters.videoFps;
+    // +++ Robin: set media constraints from media track +++
+//    // Create video constraints if video call is enabled.
+//    if (isVideoCallEnabled()) {
+//      videoWidth = peerConnectionParameters.videoWidth;
+//      videoHeight = peerConnectionParameters.videoHeight;
+//      videoFps = peerConnectionParameters.videoFps;
 
-      // If video resolution is not specified, default to HD.
-      if (videoWidth == 0 || videoHeight == 0) {
-        videoWidth = HD_VIDEO_WIDTH;
-        videoHeight = HD_VIDEO_HEIGHT;
-      }
+//      // If video resolution is not specified, default to HD.
+//      if (videoWidth == 0 || videoHeight == 0) {
+//        videoWidth = HD_VIDEO_WIDTH;
+//        videoHeight = HD_VIDEO_HEIGHT;
+//      }
 
-      // If fps is not specified, default to 30.
-      if (videoFps == 0) {
-        videoFps = 30;
-      }
-      Logging.d(TAG, "Capturing format: " + videoWidth + "x" + videoHeight + "@" + videoFps);
-    }
+//      // If fps is not specified, default to 30.
+//      if (videoFps == 0) {
+//        videoFps = 30;
+//      }
+//      Logging.d(TAG, "Capturing format: " + videoWidth + "x" + videoHeight + "@" + videoFps);
+//    }
+    // --- Robin: set media constraints from media track ---
 
-    // Create audio constraints.
-    audioConstraints = new MediaConstraints();
-    // added for audio performance measurements
-    if (peerConnectionParameters.noAudioProcessing) {
-      Log.d(TAG, "Disabling audio processing");
-      audioConstraints.mandatory.add(
-          new MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));
-      audioConstraints.mandatory.add(
-          new MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"));
-      audioConstraints.mandatory.add(
-          new MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"));
-      audioConstraints.mandatory.add(
-          new MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"));
-    }
+    // +++ Robin: set media constraints from media track +++
+//    // Create audio constraints.
+//    audioConstraints = new MediaConstraints();
+//    // added for audio performance measurements
+//    if (peerConnectionParameters.noAudioProcessing) {
+//      Log.d(TAG, "Disabling audio processing");
+//      audioConstraints.mandatory.add(
+//          new MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));
+//      audioConstraints.mandatory.add(
+//          new MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"));
+//      audioConstraints.mandatory.add(
+//          new MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"));
+//      audioConstraints.mandatory.add(
+//          new MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"));
+//    }
+    // --- Robin: set media constraints from media track ---
+
     // Create SDP constraints.
     sdpMediaConstraints = new MediaConstraints();
     sdpMediaConstraints.mandatory.add(
@@ -787,68 +795,70 @@ public abstract class PeerConnectionClient {
     rtcEventLog.start(createRtcEventLogOutputFile());
   }
 
-  private void closeInternal() {
-    if (factory != null && peerConnectionParameters.aecDump) {
-      factory.stopAecDump();
-    }
-    Log.d(TAG, "Closing peer connection.");
-    statsTimer.cancel();
-    if (dataChannel != null) {
-      dataChannel.dispose();
-      dataChannel = null;
-    }
-    if (rtcEventLog != null) {
-      // RtcEventLog should stop before the peer connection is disposed.
-      rtcEventLog.stop();
-      rtcEventLog = null;
-    }
-    if (peerConnection != null) {
-      peerConnection.dispose();
-      peerConnection = null;
-    }
-    Log.d(TAG, "Closing audio source.");
-    if (audioSource != null) {
-      audioSource.dispose();
-      audioSource = null;
-    }
-    Log.d(TAG, "Stopping capture.");
-    if (videoCapturer != null) {
-      try {
-        videoCapturer.stopCapture();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-      videoCapturerStopped = true;
-      videoCapturer.dispose();
-      videoCapturer = null;
-    }
-    Log.d(TAG, "Closing video source.");
-    if (videoSource != null) {
-      videoSource.dispose();
-      videoSource = null;
-    }
-    if (surfaceTextureHelper != null) {
-      surfaceTextureHelper.dispose();
-      surfaceTextureHelper = null;
-    }
-    if (saveRecordedAudioToFile != null) {
-      Log.d(TAG, "Closing audio file for recorded input audio.");
-      saveRecordedAudioToFile.stop();
-      saveRecordedAudioToFile = null;
-    }
-    localRender = null;
-    remoteSinks = null;
-    Log.d(TAG, "Closing peer connection factory.");
-    if (factory != null) {
-      factory.dispose();
-      factory = null;
-    }
-    rootEglBase.release();
-    Log.d(TAG, "Closing peer connection done.");
-    events.onPeerConnectionClosed();
-    PeerConnectionFactory.stopInternalTracingCapture();
-    PeerConnectionFactory.shutdownInternalTracer();
-  }
+  // +++ Robin: This method is not used. +++
+//  private void closeInternal() {
+//    if (factory != null && peerConnectionParameters.aecDump) {
+//      factory.stopAecDump();
+//    }
+//    Log.d(TAG, "Closing peer connection.");
+//    statsTimer.cancel();
+//    if (dataChannel != null) {
+//      dataChannel.dispose();
+//      dataChannel = null;
+//    }
+//    if (rtcEventLog != null) {
+//      // RtcEventLog should stop before the peer connection is disposed.
+//      rtcEventLog.stop();
+//      rtcEventLog = null;
+//    }
+//    if (peerConnection != null) {
+//      peerConnection.dispose();
+//      peerConnection = null;
+//    }
+//    Log.d(TAG, "Closing audio source.");
+//    if (audioSource != null) {
+//      audioSource.dispose();
+//      audioSource = null;
+//    }
+//    Log.d(TAG, "Stopping capture.");
+//    if (videoCapturer != null) {
+//      try {
+//        videoCapturer.stopCapture();
+//      } catch (InterruptedException e) {
+//        throw new RuntimeException(e);
+//      }
+//      videoCapturerStopped = true;
+//      videoCapturer.dispose();
+//      videoCapturer = null;
+//    }
+//    Log.d(TAG, "Closing video source.");
+//    if (videoSource != null) {
+//      videoSource.dispose();
+//      videoSource = null;
+//    }
+//    if (surfaceTextureHelper != null) {
+//      surfaceTextureHelper.dispose();
+//      surfaceTextureHelper = null;
+//    }
+//    if (saveRecordedAudioToFile != null) {
+//      Log.d(TAG, "Closing audio file for recorded input audio.");
+//      saveRecordedAudioToFile.stop();
+//      saveRecordedAudioToFile = null;
+//    }
+//    localRender = null;
+//    remoteSinks = null;
+//    Log.d(TAG, "Closing peer connection factory.");
+//    if (factory != null) {
+//      factory.dispose();
+//      factory = null;
+//    }
+//    rootEglBase.release();
+//    Log.d(TAG, "Closing peer connection done.");
+//    events.onPeerConnectionClosed();
+//    PeerConnectionFactory.stopInternalTracingCapture();
+//    PeerConnectionFactory.shutdownInternalTracer();
+//  }
+  // --- Robin: This method is not used. ---
 
   // +++ Robin: split close function for LocalPeer & RemotePeer +++
   private void localPeerCloseInternal() {

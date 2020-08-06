@@ -36,19 +36,15 @@ class SignalingManager(
     fun connectToRoom(roomName: String, self: PeerInfo) {
         Log.d(TAG, "connectToRoom $roomName $self")
         this.roomName = roomName
-//        roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
         firestore.collection(COLLECTION_ROOMS).document(roomName).get(Source.SERVER)
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     Log.d(TAG, "DocumentSnapshot data: ${document.data}")
                     registerListeners()
                     self.timestamp = System.currentTimeMillis()
-//                    roomRef.collection(COLLECTION_PEER_JOIN).add(self)
                     getRoomRef().collection(COLLECTION_PEER_JOIN).add(self)
                 } else {
                     Log.e(TAG, "No such document")
-//                    roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
-//                    roomRef.set(RoomInfo(roomName, System.currentTimeMillis()))
                     firestore.collection(COLLECTION_ROOMS).document(roomName)
                         .set(RoomInfo(roomName, System.currentTimeMillis()))
                     isRoomCreatedByMe = true
@@ -57,8 +53,6 @@ class SignalingManager(
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "get failed with ", exception)
-//                roomRef = firestore.collection(COLLECTION_ROOMS).document(roomName)
-//                roomRef.set(RoomInfo(roomName, System.currentTimeMillis()))
                 firestore.collection(COLLECTION_ROOMS).document(roomName)
                     .set(RoomInfo(roomName, System.currentTimeMillis()))
                 isRoomCreatedByMe = true
@@ -70,7 +64,6 @@ class SignalingManager(
         Log.d(TAG, "leaveRoom $self")
         self.timestamp = System.currentTimeMillis()
         getRoomRef().collection(COLLECTION_PEER_LEAVE).add(self)
-//        roomRef.collection(COLLECTION_PEER_LEAVE).add(self)
         unregisterListeners()
 
         if (isRoomCreatedByMe) {
@@ -164,7 +157,7 @@ class SignalingManager(
                     return@addSnapshotListener
                 }
 
-                for (doc in value!!.documentChanges) {
+                for (doc in value.documentChanges) {
                     when (doc.type) {
                         DocumentChange.Type.ADDED -> {
                             listener.onPeerJoinReceived(doc.document.toObject(PeerInfo::class.java))
@@ -187,7 +180,7 @@ class SignalingManager(
                     return@addSnapshotListener
                 }
 
-                for (doc in value!!.documentChanges) {
+                for (doc in value.documentChanges) {
                     when (doc.type) {
                         DocumentChange.Type.ADDED -> {
                             listener.onPeerLeaveReceived(doc.document.toObject(PeerInfo::class.java))
@@ -209,7 +202,7 @@ class SignalingManager(
                 return@addSnapshotListener
             }
 
-            for (doc in value!!) {
+            for (doc in value) {
                 listener.onSdpReceived(doc.toObject(Sdp::class.java))
             }
         }
@@ -228,7 +221,7 @@ class SignalingManager(
                     return@addSnapshotListener
                 }
 
-                for (doc in value!!) {
+                for (doc in value) {
                     listener.onCandidateReceived(doc.toObject(SdpCandidate::class.java))
                 }
             }
@@ -247,7 +240,7 @@ class SignalingManager(
                     return@addSnapshotListener
                 }
 
-                for (doc in value!!) {
+                for (doc in value) {
                     listener.onCandidatesRemoveReceived(doc.toObject(SdpCandidatesRemove::class.java))
                 }
             }
