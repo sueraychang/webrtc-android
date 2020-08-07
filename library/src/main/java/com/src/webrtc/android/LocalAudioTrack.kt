@@ -4,20 +4,13 @@ import android.util.Log
 import java.util.concurrent.ExecutorService
 
 class LocalAudioTrack(
-    override val name: String,
+    override val id: String,
     val audioOptions: AudioOptions
 ) : AudioTrack() {
-
-    interface LocalAudioTrackEvents {
-
-        fun setEnable(name: String, isEnable: Boolean)
-    }
 
     override var executor: ExecutorService? = null
 
     override var internalAudioTrack: org.webrtc.AudioTrack? = null
-
-    private var events: LocalAudioTrackEvents? = null
 
     override fun isEnable(): Boolean {
         return internalAudioTrack?.enabled() ?: false
@@ -28,18 +21,15 @@ class LocalAudioTrack(
             executor?.execute {
                 track.setEnabled(isEnable)
             }
-            events?.setEnable(name, isEnable)
         }
     }
 
     fun initInternalAudioTrack(
-        internalAudioTrack: org.webrtc.AudioTrack, executorService: ExecutorService,
-        events: LocalAudioTrackEvents
+        internalAudioTrack: org.webrtc.AudioTrack, executorService: ExecutorService
     ) {
         Log.d(TAG, "initInternalAudioTrack")
         this.internalAudioTrack = internalAudioTrack
         this.executor = executorService
-        this.events = events
     }
 
     companion object {

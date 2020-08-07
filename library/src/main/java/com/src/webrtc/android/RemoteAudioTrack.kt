@@ -3,7 +3,7 @@ package com.src.webrtc.android
 import java.util.concurrent.ExecutorService
 
 class RemoteAudioTrack(
-    override val name: String,
+    override val id: String,
     executorService: ExecutorService,
     audioTrack: org.webrtc.AudioTrack
 ): AudioTrack() {

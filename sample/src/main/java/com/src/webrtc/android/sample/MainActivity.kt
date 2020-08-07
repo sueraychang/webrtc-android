@@ -14,24 +14,20 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.firebase.firestore.FirebaseFirestore
-import com.src.webrtc.android.LocalVideoTrack
-import com.src.webrtc.android.RemoteVideoTrack
-import com.src.webrtc.android.VideoRenderer
+import com.src.webrtc.android.*
 import com.src.webrtc.android.sample.databinding.ActivityMainBinding
 import org.webrtc.RendererCommon
+import org.webrtc.SurfaceViewRenderer
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
 
-    private val mainViewRenderer = VideoRenderer()
-    private val subViewRenderer = VideoRenderer()
-
-    private var localVideoTrack: LocalVideoTrack? = null
-    private var remoteVideoTrack: RemoteVideoTrack? = null
-
-    private var isSwapped = false
+    private val curPeers = mutableListOf<Peer>()
+    private val peerViews = mutableListOf<SurfaceViewRenderer>()
+    private val viewRenderers =
+        listOf(VideoRenderer(), VideoRenderer(), VideoRenderer(), VideoRenderer())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +43,13 @@ class MainActivity : AppCompatActivity() {
         binding.lifecycleOwner = this
 
         binding.apply {
+            peerViews.add(mainView)
+            peerViews.add(subView1)
+            peerViews.add(subView2)
+            peerViews.add(subView3)
+            for (i in viewRenderers.indices) {
+                viewRenderers[i].setTarget(peerViews[i])
+            }
             options.visibility = View.GONE
 
             connectRoom.setOnClickListener {
@@ -74,21 +77,6 @@ class MainActivity : AppCompatActivity() {
                 connectRoom.isEnabled = true
                 roomName.isEnabled = true
             }
-
-//            micToggle.setOnClickListener {
-//                Log.d(TAG, "on micToggle click")
-//                viewModel.toggleMic()
-//            }
-//
-//            cameraToggle.setOnClickListener {
-//                Log.d(TAG, "on cameraToggle click")
-//                viewModel.toggleCamera()
-//            }
-//
-//            cameraSwitch.setOnClickListener {
-//                Log.d(TAG, "on cameraSwitch click")
-//                viewModel.switchCamera()
-//            }
         }
 
         viewModel.room.observe(this, Observer {
@@ -97,54 +85,29 @@ class MainActivity : AppCompatActivity() {
                 binding.options.visibility = View.VISIBLE
                 binding.mainView.apply {
                     init(it.eglBase.eglBaseContext, null)
-                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
                     setEnableHardwareScaler(false)
-                    mainViewRenderer.setTarget(this)
                 }
-                binding.subView.apply {
-                    init(it.eglBase.eglBaseContext, null)
-                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-                    setZOrderMediaOverlay(true)
-                    setEnableHardwareScaler(true)
-                    subViewRenderer.setTarget(this)
-                    binding.subView.visibility = View.GONE
-                }
+                initSubView(it, binding.subView1)
+                initSubView(it, binding.subView2)
+                initSubView(it, binding.subView3)
             } else {
-                isSwapped = false
                 binding.options.visibility = View.GONE
-                mainViewRenderer.setTarget(null)
-                subViewRenderer.setTarget(null)
                 binding.mainView.clearImage()
-                binding.subView.clearImage()
+                binding.subView1.clearImage()
+                binding.subView2.clearImage()
+                binding.subView3.clearImage()
                 Handler().postDelayed({
                     binding.mainView.release()
-                    binding.subView.release()
+                    binding.subView1.release()
+                    binding.subView2.release()
+                    binding.subView3.release()
                 }, 100)
             }
         })
-        viewModel.localPeer.observe(this, Observer {
-            Log.d(TAG, "observe localPeer $it")
-            if (it != null) {
-                localVideoTrack = it.getVideoTracks()["camera"]
-                localVideoTrack?.addRenderer(mainViewRenderer)
-            } else {
-                localVideoTrack?.removeRenderer(mainViewRenderer)
-            }
-        })
-        viewModel.remotePeerEvent.observe(this, EventObserver {
-            if (it.second) {
-                Toast.makeText(this, getString(R.string.remote_peer_connected, it.first), Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, getString(R.string.remote_peer_disconnected, it.first), Toast.LENGTH_SHORT).show()
-            }
-        })
-        viewModel.remoteVideoTrack.observe(this, Observer {
-            if (it != null) {
-                remoteVideoTrack = it
-                swapRenderers(true)
-            } else {
-                swapRenderers(false)
-            }
+        viewModel.peers.observe(this, Observer {
+            Log.d(TAG, "observe peers $it")
+            handlePeers(it)
         })
 
         // Enable Firestore logging
@@ -153,38 +116,69 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy")
-        localVideoTrack?.removeRenderer(mainViewRenderer)
-        remoteVideoTrack?.removeRenderer(subViewRenderer)
-
-        mainViewRenderer.setTarget(null)
-        subViewRenderer.setTarget(null)
         binding.mainView.release()
-        binding.subView.release()
+        binding.subView1.release()
+        binding.subView2.release()
+        binding.subView3.release()
 
         super.onDestroy()
     }
 
-    private fun swapRenderers(isSwapped: Boolean) {
-        if (this.isSwapped != isSwapped) {
-            this.isSwapped = isSwapped
-            if (isSwapped) {
-                localVideoTrack?.removeRenderer(mainViewRenderer)
-                localVideoTrack?.addRenderer(subViewRenderer)
-                remoteVideoTrack?.addRenderer(mainViewRenderer)
-                binding.subView.setMirror(true)
-                binding.mainView.setMirror(false)
-                binding.subView.visibility = View.VISIBLE
-            } else {
-                localVideoTrack?.removeRenderer(subViewRenderer)
-                localVideoTrack?.addRenderer(mainViewRenderer)
-                remoteVideoTrack?.removeRenderer(mainViewRenderer)
-                binding.subView.setMirror(false)
-                binding.mainView.setMirror(true)
-                binding.subView.visibility = View.GONE
-            }
+    private fun initSubView(room: Room, view: SurfaceViewRenderer) {
+        view.apply {
+            init(room.eglBase.eglBaseContext, null)
+            setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+            setZOrderMediaOverlay(true)
+            setEnableHardwareScaler(true)
         }
     }
 
+    private fun handlePeers(peers: List<Peer>) {
+        for (i in 0 until curPeers.size) {
+            if (curPeers[i] != peers.getOrNull(i)) {
+                Log.d(TAG, "first $i")
+                when (val peer = curPeers[i]) {
+                    is LocalPeer -> peer.getVideoTracks()["camera"]?.removeRenderer(viewRenderers[i])
+                    is RemotePeer -> peer.getVideoTracks()["camera"]?.removeRenderer(viewRenderers[i])
+                    else -> {
+                        Log.e(TAG, "MUST not happen.")
+                    }
+                }
+            }
+        }
+
+        for (i in peers.indices) {
+            if (peers[i] != curPeers.getOrNull(i)) {
+                Log.d(TAG, "second $i")
+                when (val peer = peers[i]) {
+                    is LocalPeer -> {
+                        peer.getVideoTracks()["camera"]?.addRenderer(viewRenderers[i])
+                        peerViews[i].setMirror(true)
+                    }
+                    is RemotePeer -> {
+                        peer.getVideoTracks()["camera"]?.addRenderer(viewRenderers[i])
+                        peerViews[i].setMirror(false)
+                    }
+                    else -> {
+                        Log.e(TAG, "MUST not happen.")
+                    }
+                }
+            }
+        }
+
+        for (i in peerViews.indices) {
+            if (i < peers.size) {
+                Log.d(TAG, "set $i visible")
+                peerViews[i].visibility = View.VISIBLE
+            } else {
+                Log.d(TAG, "set $i gone")
+                peerViews[i].visibility = View.GONE
+            }
+        }
+
+        curPeers.clear()
+        curPeers.addAll(peers)
+    }
 
     //region Runtime Permissions
     override fun onRequestPermissionsResult(

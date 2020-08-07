@@ -19,6 +19,11 @@ class RemotePeer(
     private val events: RemotePeerEvents
 ) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
 
+    interface Listener {
+
+        fun onDataTrackReady(remoteDataTrack: RemoteDataTrack)
+    }
+
     private val handler = Handler(Looper.getMainLooper())
 
     private val signalingParameters = AppRTCClient.SignalingParameters(
@@ -34,6 +39,8 @@ class RemotePeer(
     private val audioTracks = mutableMapOf<String, RemoteAudioTrack>()
     private val videoTracks = mutableMapOf<String, RemoteVideoTrack>()
     private val dataTracks = mutableMapOf<String, RemoteDataTrack>()
+
+    private var listener: Listener? = null
 
     private val peerConnectionEvents = object: PeerConnectionEvents {
         override fun onLocalDescription(sdp: SessionDescription) {
@@ -92,14 +99,14 @@ class RemotePeer(
                 stream.videoTracks.forEach {
                     Log.d(TAG, "video stream ${stream.id}")
                     val remoteVideoTrack = RemoteVideoTrack(stream.id, executor, it)
-                    videoTracks[remoteVideoTrack.name] = remoteVideoTrack
+                    videoTracks[remoteVideoTrack.id] = remoteVideoTrack
                 }
             }
             if (stream.audioTracks.isNotEmpty()) {
                 stream.audioTracks.forEach {
                     Log.d(TAG, "audio stream ${stream.id}")
                     val remoteAudioTrack = RemoteAudioTrack(stream.id, executor, it)
-                    audioTracks[remoteAudioTrack.name] = remoteAudioTrack
+                    audioTracks[remoteAudioTrack.id] = remoteAudioTrack
                 }
             }
         }
@@ -109,17 +116,12 @@ class RemotePeer(
         }
 
         override fun onDataChannel(dc: DataChannel) {
-            Log.d(TAG, "onDataChannel")
-            val remoteDataTrack = RemoteDataTrack(dc.label(), dc, dataTrackEvents)
-            dataTracks[dc.label()] = remoteDataTrack
-            events.onDataChannel(id, dc.label())
-        }
-    }
-
-    private val dataTrackEvents = object: DataTrack.Events {
-        override fun onMessage(label: String, buffer: DataChannel.Buffer) {
-            Log.d(TAG, "onMessage $label")
-            events.onMessage(id, label, buffer)
+            handler.post {
+                Log.d(TAG, "onDataChannel")
+                val remoteDataTrack = RemoteDataTrack(dc.label(), dc)
+                dataTracks[dc.label()] = remoteDataTrack
+                listener?.onDataTrackReady(remoteDataTrack)
+            }
         }
     }
 
@@ -216,6 +218,10 @@ class RemotePeer(
 
             createAnswer()
         }
+    }
+
+    fun registerListener(listener: Listener) {
+        this.listener = listener
     }
 
     companion object {

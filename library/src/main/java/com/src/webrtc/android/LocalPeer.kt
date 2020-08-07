@@ -12,16 +12,8 @@ class LocalPeer(
     eglBase: EglBase,
     connectionParameters: ConnectParameters,
     peerConnectionParameters: PeerConnectionParameters,
-    executorService: ExecutorService,
-    events: Events
+    executorService: ExecutorService
 ) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
-
-    interface Events {
-
-        fun setAudioEnable(id: String, name: String, isEnabled: Boolean)
-
-        fun setVideoEnable(id: String, name: String, isEnabled: Boolean)
-    }
 
     private val audioTracks = mutableMapOf<String, LocalAudioTrack>()
     private val videoTracks = mutableMapOf<String, LocalVideoTrack>()
@@ -38,36 +30,24 @@ class LocalPeer(
             if (param.audioTracks.isNotEmpty()) {
                 isAudioTrackEnabled = true
                 param.audioTracks.forEach {
-                    audioTracks[it.name] = it
+                    audioTracks[it.id] = it
                 }
             }
             if (param.videoTracks.isNotEmpty()) {
                 isVideoTrackEnabled = true
                 param.videoTracks.forEach {
-                    videoTracks[it.name] = it
+                    videoTracks[it.id] = it
                 }
             }
             if (param.dataTracks.isNotEmpty()) {
                 isDataTrackEnabled = true
                 param.dataTracks.forEach {
-                    dataTracks[it.name] = it
+                    dataTracks[it.id] = it
                 }
             }
         }
 
         createPeerConnectionFactory(PeerConnectionFactory.Options())
-    }
-
-    private val localAudioTrackEvents = object: LocalAudioTrack.LocalAudioTrackEvents {
-        override fun setEnable(name: String, isEnable: Boolean) {
-            events.setAudioEnable(id, name, isEnable)
-        }
-    }
-
-    private val localVideoTrackEvents = object: LocalVideoTrack.LocalVideoTrackEvents {
-        override fun setEnable(name: String, isEnable: Boolean) {
-            events.setVideoEnable(id, name, isEnable)
-        }
     }
 
     override fun release() {
@@ -108,7 +88,7 @@ class LocalPeer(
             }
             audioSource = factory!!.createAudioSource(constraints)
             val internalTrack = factory!!.createAudioTrack(name, audioSource)
-            track.initInternalAudioTrack(internalTrack, executor, localAudioTrackEvents)
+            track.initInternalAudioTrack(internalTrack, executor)
         }
     }
 
@@ -135,7 +115,6 @@ class LocalPeer(
             track.initInternalVideoTrack(
                 internalTrack,
                 executor,
-                localVideoTrackEvents,
                 surfaceTextureHelper!!
             )
         }

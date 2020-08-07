@@ -13,9 +13,7 @@ import java.util.concurrent.Executors
 class Room private constructor(
     private val context: Context,
     private val connectParameters: ConnectParameters,
-    private val roomListener: Listener.RoomListener,
-    private val remotePeerListener: Listener.RemotePeerListener,
-    private val remoteDataListener: Listener.RemoteDataListener
+    private val roomListener: Listener.RoomListener
 ){
 
     val eglBase: EglBase = EglBase.create()
@@ -39,7 +37,7 @@ class Room private constructor(
 
         peerConnectionParameters = ConferenceParameters(context).getPeerConnectionParameters(connectParameters)
 
-        localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService, localPeerEvents)
+        localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService)
 
         _remotePeers.forEach { (id, peer) ->
             Log.d(TAG, "remotePeer $id $peer")
@@ -153,17 +151,6 @@ class Room private constructor(
         eglBase.release()
     }
 
-    private val localPeerEvents = object: LocalPeer.Events {
-
-        override fun setAudioEnable(id: String, name: String, isEnabled: Boolean) {
-            // TODO: Do nothing
-        }
-
-        override fun setVideoEnable(id: String, name: String, isEnabled: Boolean) {
-            // TODO: Do nothing
-        }
-    }
-
     private val remotePeerEvents = object: RemotePeerEvents {
         override fun onLocalDescription(to: String, type: String, sdp: String) {
             handler.post {
@@ -201,12 +188,12 @@ class Room private constructor(
                 }
 
                 roomListener.onPeerConnected(this@Room, remotePeer)
-                remotePeer.getAudioTracks().forEach { (_, track) ->
-                    remotePeerListener.onAudioTrackReady(remotePeer, track)
-                }
-                remotePeer.getVideoTracks().forEach { (_, track) ->
-                    remotePeerListener.onVideoTrackReady(remotePeer, track)
-                }
+//                remotePeer.getAudioTracks().forEach { (_, track) ->
+//                    remotePeerListener.onAudioTrackReady(remotePeer, track)
+//                }
+//                remotePeer.getVideoTracks().forEach { (_, track) ->
+//                    remotePeerListener.onVideoTrackReady(remotePeer, track)
+//                }
             }
         }
 
@@ -214,46 +201,46 @@ class Room private constructor(
             Log.d(TAG, "onDisconnected $id")
         }
 
-        override fun onDataChannel(id: String, label: String) {
-            handler.post {
-                Log.d(TAG, "onDataChannel $id $label")
-                val remotePeer = _remotePeers[id]
-                if (remotePeer == null) {
-                    Log.e(TAG, "Remote peer $id not found")
-                    return@post
-                }
+//        override fun onDataChannel(id: String, label: String) {
+//            handler.post {
+//                Log.d(TAG, "onDataChannel $id $label")
+//                val remotePeer = _remotePeers[id]
+//                if (remotePeer == null) {
+//                    Log.e(TAG, "Remote peer $id not found")
+//                    return@post
+//                }
+//
+//                remotePeer.getDataTracks()[label]?.let {
+//                    remotePeerListener.onDataTrackReady(remotePeer, it)
+//                }
+//            }
+//        }
 
-                remotePeer.getDataTracks()[label]?.let {
-                    remotePeerListener.onDataTrackReady(remotePeer, it)
-                }
-            }
-        }
-
-        override fun onMessage(id: String, label: String, buffer: DataChannel.Buffer) {
-            val copiedBuffer = DataChannel.Buffer(cloneByteBuffer(buffer.data), buffer.binary)
-            handler.post {
-                Log.d(TAG, "onMessage, id: $id, label: $label")
-
-                val remotePeer = _remotePeers[id]
-                if (remotePeer == null) {
-                    Log.e(TAG, "Remote peer $id not found")
-                    return@post
-                }
-
-                remotePeer.getDataTracks()[label]?.let {
-                    if (!copiedBuffer.binary) {
-                        val data = copiedBuffer.data
-                        val bytes = ByteArray(data.capacity())
-                        data.get(bytes)
-                        val msg = String(bytes, Charset.forName("UTF-8"))
-                        Log.d(TAG, "onMessage: $msg")
-                        remoteDataListener.onMessage(remotePeer, it, msg)
-                    } else {
-                        remoteDataListener.onMessage(remotePeer, it, copiedBuffer.data)
-                    }
-                }
-            }
-        }
+//        override fun onMessage(id: String, label: String, buffer: DataChannel.Buffer) {
+//            val copiedBuffer = DataChannel.Buffer(cloneByteBuffer(buffer.data), buffer.binary)
+//            handler.post {
+//                Log.d(TAG, "onMessage, id: $id, label: $label")
+//
+//                val remotePeer = _remotePeers[id]
+//                if (remotePeer == null) {
+//                    Log.e(TAG, "Remote peer $id not found")
+//                    return@post
+//                }
+//
+//                remotePeer.getDataTracks()[label]?.let {
+//                    if (!copiedBuffer.binary) {
+//                        val data = copiedBuffer.data
+//                        val bytes = ByteArray(data.capacity())
+//                        data.get(bytes)
+//                        val msg = String(bytes, Charset.forName("UTF-8"))
+//                        Log.d(TAG, "onMessage: $msg")
+//                        remoteDataListener.onMessage(remotePeer, it, msg)
+//                    } else {
+//                        remoteDataListener.onMessage(remotePeer, it, copiedBuffer.data)
+//                    }
+//                }
+//            }
+//        }
 
         override fun onPeerConnectionClose(id: String) {
             Log.d(TAG, "onPeerConnectionClose $id")
@@ -304,11 +291,9 @@ class Room private constructor(
 
         fun connect(context: Context,
                     connectParameters: ConnectParameters,
-                    roomListener: Listener.RoomListener,
-                    remotePeerListener: Listener.RemotePeerListener,
-                    remoteDataListener: Listener.RemoteDataListener
+                    roomListener: Listener.RoomListener
         ): Room {
-            val room = Room(context, connectParameters, roomListener, remotePeerListener, remoteDataListener)
+            val room = Room(context, connectParameters, roomListener)
             room.connect()
             return room
         }

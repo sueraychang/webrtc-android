@@ -24,26 +24,6 @@ interface Listener {
         fun onPeerDisconnected(room: Room, remotePeer: RemotePeer)
     }
 
-    interface RemotePeerListener {
-
-        fun onAudioTrackReady(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack)
-
-        fun onVideoTrackReady(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack)
-
-        fun onDataTrackReady(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack)
-    }
-
-    interface RemoteDataListener {
-
-        fun onMessage(
-            remotePeer: RemotePeer,
-            remoteDataTrack: RemoteDataTrack,
-            byteBuffer: ByteBuffer
-        )
-
-        fun onMessage(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack, message: String)
-    }
-
     interface CameraSwitchListener {
 
         fun onCameraSwitchDone(isFrontCamera: Boolean)

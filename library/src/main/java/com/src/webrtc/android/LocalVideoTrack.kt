@@ -1,27 +1,19 @@
 package com.src.webrtc.android
 
 import android.util.Log
-import org.webrtc.RtpSender
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoCapturer
 import java.util.concurrent.ExecutorService
 
 class LocalVideoTrack(
-    override val name: String,
+    override val id: String,
     val videoConstraints: VideoConstraints,
     val videoCapturer: VideoCapturer
 ) : VideoTrack() {
 
-    interface LocalVideoTrackEvents {
-
-        fun setEnable(name: String, isEnable: Boolean)
-    }
-
     override var executor: ExecutorService? = null
 
     override var internalVideoTrack: org.webrtc.VideoTrack? = null
-
-    private var events: LocalVideoTrackEvents? = null
 
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
 
@@ -34,7 +26,6 @@ class LocalVideoTrack(
             executor?.execute {
                 track.setEnabled(isEnable)
             }
-            events?.setEnable(name, isEnable)
         }
     }
 
@@ -76,13 +67,11 @@ class LocalVideoTrack(
     }
 
     fun initInternalVideoTrack(
-        internalVideoTrack: org.webrtc.VideoTrack, executorService: ExecutorService,
-        events: LocalVideoTrackEvents, surfaceTextureHelper: SurfaceTextureHelper
+        internalVideoTrack: org.webrtc.VideoTrack, executorService: ExecutorService, surfaceTextureHelper: SurfaceTextureHelper
     ) {
         Log.d(TAG, "initInternalVideoTrack")
         this.internalVideoTrack = internalVideoTrack
         this.executor = executorService
-        this.events = events
         this.surfaceTextureHelper = surfaceTextureHelper
 
         if (videoRenderers.isNotEmpty()) {

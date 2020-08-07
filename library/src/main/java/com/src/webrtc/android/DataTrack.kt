@@ -1,12 +1,14 @@
 package com.src.webrtc.android
 
-import org.webrtc.DataChannel
+import java.nio.ByteBuffer
 
-abstract class DataTrack: Track {
+abstract class DataTrack : Track {
 
-    interface Events {
+    interface MessageListener {
 
-        fun onMessage(label: String, buffer: DataChannel.Buffer)
+        fun onMessage(remoteDataTrack: RemoteDataTrack, byteBuffer: ByteBuffer)
+
+        fun onMessage(remoteDataTrack: RemoteDataTrack, message: String)
     }
 
     abstract fun release()

@@ -444,13 +444,17 @@ public abstract class PeerConnectionClient {
       Log.e(TAG, "Creating peer connection without initializing factory.");
       return;
     }
-    this.localRender = localRender;
-    this.remoteSinks = remoteSinks;
+    // +++ Robin: We don't use these member variable +++
+//    this.localRender = localRender;
+//    this.remoteSinks = remoteSinks;
+    // --- Robin: We don't use these member variable ---
     this.videoCapturer = videoCapturer;
     this.signalingParameters = signalingParameters;
     executor.execute(() -> {
       try {
-        createMediaConstraintsInternal();
+        // +++ Robin: Move this function call to createPeerConnectionFactory +++
+//        createMediaConstraintsInternal();
+        // --- Robin: Move this function call to createPeerConnectionFactory ---
         createPeerConnectionInternal();
         maybeCreateAndStartRtcEventLog();
       } catch (Exception e) {
@@ -985,26 +989,28 @@ public abstract class PeerConnectionClient {
     }
   }
 
-  public void setAudioEnabled(final boolean enable) {
-    executor.execute(() -> {
-      enableAudio = enable;
-      if (localAudioTrack != null) {
-        localAudioTrack.setEnabled(enableAudio);
-      }
-    });
-  }
-
-  public void setVideoEnabled(final boolean enable) {
-    executor.execute(() -> {
-      renderVideo = enable;
-      if (localVideoTrack != null) {
-        localVideoTrack.setEnabled(renderVideo);
-      }
-      if (remoteVideoTrack != null) {
-        remoteVideoTrack.setEnabled(renderVideo);
-      }
-    });
-  }
+  // +++ Robin: We don't use these function +++
+//  public void setAudioEnabled(final boolean enable) {
+//    executor.execute(() -> {
+//      enableAudio = enable;
+//      if (localAudioTrack != null) {
+//        localAudioTrack.setEnabled(enableAudio);
+//      }
+//    });
+//  }
+//
+//  public void setVideoEnabled(final boolean enable) {
+//    executor.execute(() -> {
+//      renderVideo = enable;
+//      if (localVideoTrack != null) {
+//        localVideoTrack.setEnabled(renderVideo);
+//      }
+//      if (remoteVideoTrack != null) {
+//        remoteVideoTrack.setEnabled(renderVideo);
+//      }
+//    });
+//  }
+  // --- Robin: We don't use these function ---
 
   public void createOffer() {
     executor.execute(() -> {
@@ -1073,28 +1079,30 @@ public abstract class PeerConnectionClient {
     });
   }
 
-  public void stopVideoSource() {
-    executor.execute(() -> {
-      if (videoCapturer != null && !videoCapturerStopped) {
-        Log.d(TAG, "Stop video source.");
-        try {
-          videoCapturer.stopCapture();
-        } catch (InterruptedException e) {
-        }
-        videoCapturerStopped = true;
-      }
-    });
-  }
-
-  public void startVideoSource() {
-    executor.execute(() -> {
-      if (videoCapturer != null && videoCapturerStopped) {
-        Log.d(TAG, "Restart video source.");
-        videoCapturer.startCapture(videoWidth, videoHeight, videoFps);
-        videoCapturerStopped = false;
-      }
-    });
-  }
+  // +++ Robin: We don't use these function +++
+//  public void stopVideoSource() {
+//    executor.execute(() -> {
+//      if (videoCapturer != null && !videoCapturerStopped) {
+//        Log.d(TAG, "Stop video source.");
+//        try {
+//          videoCapturer.stopCapture();
+//        } catch (InterruptedException e) {
+//        }
+//        videoCapturerStopped = true;
+//      }
+//    });
+//  }
+//
+//  public void startVideoSource() {
+//    executor.execute(() -> {
+//      if (videoCapturer != null && videoCapturerStopped) {
+//        Log.d(TAG, "Restart video source.");
+//        videoCapturer.startCapture(videoWidth, videoHeight, videoFps);
+//        videoCapturerStopped = false;
+//      }
+//    });
+//  }
+  // --- Robin: We don't use these function ---
 
   public void setVideoMaxBitrate(@Nullable final Integer maxBitrateKbps) {
     executor.execute(() -> {
@@ -1134,27 +1142,29 @@ public abstract class PeerConnectionClient {
     });
   }
 
-  @Nullable
-  private AudioTrack createAudioTrack() {
-    audioSource = factory.createAudioSource(audioConstraints);
-    localAudioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource);
-    localAudioTrack.setEnabled(enableAudio);
-    return localAudioTrack;
-  }
-
-  @Nullable
-  private VideoTrack createVideoTrack(VideoCapturer capturer) {
-    surfaceTextureHelper =
-        SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
-    videoSource = factory.createVideoSource(capturer.isScreencast());
-    capturer.initialize(surfaceTextureHelper, appContext, videoSource.getCapturerObserver());
-    capturer.startCapture(videoWidth, videoHeight, videoFps);
-
-    localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-    localVideoTrack.setEnabled(renderVideo);
-    localVideoTrack.addSink(localRender);
-    return localVideoTrack;
-  }
+  // +++ Robin: We don't use these function +++
+//  @Nullable
+//  private AudioTrack createAudioTrack() {
+//    audioSource = factory.createAudioSource(audioConstraints);
+//    localAudioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource);
+//    localAudioTrack.setEnabled(enableAudio);
+//    return localAudioTrack;
+//  }
+//
+//  @Nullable
+//  private VideoTrack createVideoTrack(VideoCapturer capturer) {
+//    surfaceTextureHelper =
+//        SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
+//    videoSource = factory.createVideoSource(capturer.isScreencast());
+//    capturer.initialize(surfaceTextureHelper, appContext, videoSource.getCapturerObserver());
+//    capturer.startCapture(videoWidth, videoHeight, videoFps);
+//
+//    localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
+//    localVideoTrack.setEnabled(renderVideo);
+//    localVideoTrack.addSink(localRender);
+//    return localVideoTrack;
+//  }
+  // --- Robin: We don't use these function ---
 
   private void findVideoSender() {
     for (RtpSender sender : peerConnection.getSenders()) {
@@ -1168,16 +1178,18 @@ public abstract class PeerConnectionClient {
     }
   }
 
+  // +++ Robin: We don't use these function +++
   // Returns the remote VideoTrack, assuming there is only one.
-  private @Nullable VideoTrack getRemoteVideoTrack() {
-    for (RtpTransceiver transceiver : peerConnection.getTransceivers()) {
-      MediaStreamTrack track = transceiver.getReceiver().track();
-      if (track instanceof VideoTrack) {
-        return (VideoTrack) track;
-      }
-    }
-    return null;
-  }
+//  private @Nullable VideoTrack getRemoteVideoTrack() {
+//    for (RtpTransceiver transceiver : peerConnection.getTransceivers()) {
+//      MediaStreamTrack track = transceiver.getReceiver().track();
+//      if (track instanceof VideoTrack) {
+//        return (VideoTrack) track;
+//      }
+//    }
+//    return null;
+//  }
+  // --- Robin: We don't use these function ---
 
   private static String getSdpVideoCodecName(PeerConnectionParameters parameters) {
     switch (parameters.videoCodec) {
@@ -1399,12 +1411,26 @@ public abstract class PeerConnectionClient {
   private class PCObserver implements PeerConnection.Observer {
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
-      executor.execute(() -> events.onIceCandidate(candidate));
+      executor.execute(() -> {
+        // +++ Robin: Add null pointer check +++
+        if (events == null) {
+          return;
+        }
+        // --- Robin: Add null pointer check ---
+        events.onIceCandidate(candidate);
+      });
     }
 
     @Override
     public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
-      executor.execute(() -> events.onIceCandidatesRemoved(candidates));
+      executor.execute(() -> {
+        // +++ Robin: Add null pointer check +++
+        if (events == null) {
+          return;
+        }
+        // --- Robin: Add null pointer check ---
+        events.onIceCandidatesRemoved(candidates);
+      });
     }
 
     @Override
@@ -1416,6 +1442,11 @@ public abstract class PeerConnectionClient {
     public void onIceConnectionChange(final PeerConnection.IceConnectionState newState) {
       executor.execute(() -> {
         Log.d(TAG, "IceConnectionState: " + newState);
+        // +++ Robin: Add null pointer check +++
+        if (events == null) {
+          return;
+        }
+        // --- Robin: Add null pointer check ---
         if (newState == IceConnectionState.CONNECTED) {
           events.onIceConnected();
         } else if (newState == IceConnectionState.DISCONNECTED) {
@@ -1430,6 +1461,11 @@ public abstract class PeerConnectionClient {
     public void onConnectionChange(final PeerConnection.PeerConnectionState newState) {
       executor.execute(() -> {
         Log.d(TAG, "PeerConnectionState: " + newState);
+        // +++ Robin: Add null pointer check +++
+        if (events == null) {
+          return;
+        }
+        // --- Robin: Add null pointer check ---
         if (newState == PeerConnectionState.CONNECTED) {
           events.onConnected();
         } else if (newState == PeerConnectionState.DISCONNECTED) {
