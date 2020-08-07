@@ -24,14 +24,8 @@ class MainViewModel(
     private val _room = MutableLiveData<Room>()
     val room: LiveData<Room> = _room
 
-    private val _localPeer = MutableLiveData<LocalPeer>()
-    val localPeer: LiveData<LocalPeer> = _localPeer
-
-    private val _remotePeerEvent = MutableLiveData<Event<Pair<String, Boolean>>>()
-    val remotePeerEvent: LiveData<Event<Pair<String, Boolean>>> = _remotePeerEvent
-
-    private val _remoteVideoTrack = MutableLiveData<RemoteVideoTrack>()
-    val remoteVideoTrack: LiveData<RemoteVideoTrack> = _remoteVideoTrack
+    private val _peers = MutableLiveData<List<Peer>>()
+    val peers: LiveData<List<Peer>> = _peers
 
     val isMicEnabled = MutableLiveData(true)
     val isCameraEnabled = MutableLiveData(true)
@@ -41,7 +35,7 @@ class MainViewModel(
 
         self = PeerInfo(UUID.randomUUID().toString(), "Harry")
 
-        roomManager = RoomManager(context, roomListener, remotePeerListener, remoteDataListener)
+        roomManager = RoomManager(context, roomListener)
         roomManager.connect(roomName, self.id, ICE_URLS)
 
         Log.d(TAG, "room name: $roomName")
@@ -51,6 +45,7 @@ class MainViewModel(
     }
 
     fun leaveRoom() {
+        _peers.value = emptyList()
         roomManager.disconnect()
         signaling.leaveRoom(self)
     }
@@ -58,11 +53,13 @@ class MainViewModel(
     fun toggleMic() {
         isMicEnabled.value = !(isMicEnabled.value ?: false)
         roomManager.localAudioTrack.enable(isMicEnabled.value ?: true)
+        roomManager.localDataTrack.send("toggle mic to ${isMicEnabled.value}")
     }
 
     fun toggleCamera() {
         isCameraEnabled.value = !(isCameraEnabled.value ?: false)
         roomManager.localVideoTrack.enable(isCameraEnabled.value ?: true)
+        roomManager.localDataTrack.send("toggle camera to ${isCameraEnabled.value}")
     }
 
     fun switchCamera() {
@@ -155,7 +152,10 @@ class MainViewModel(
         override fun onConnected(room: Room) {
             Log.d(TAG, "onConnected")
             _room.value = room
-            _localPeer.value = room.localPeer
+
+            val peers = mutableListOf<Peer>()
+            peers.add(room.localPeer!!)
+            _peers.value = peers
         }
 
         override fun onConnectFailed(room: Room) {
@@ -165,52 +165,44 @@ class MainViewModel(
         override fun onDisconnected(room: Room) {
             Log.d(TAG, "onDisconnected")
             _room.value = null
-            _localPeer.value = null
         }
 
         override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {
             Log.d(TAG, "onPeerConnected ${remotePeer.id}")
-            _remotePeerEvent.value = Event(Pair(remotePeer.id, true))
+            remotePeer.registerListener(remotePeerListener)
+            val peers = mutableListOf<Peer>()
+            _peers.value?.let {
+                peers.addAll(it)
+            }
+            peers.add(0, remotePeer)
+            _peers.value = peers
         }
 
         override fun onPeerDisconnected(room: Room, remotePeer: RemotePeer) {
             Log.d(TAG, "onPeerDisconnected ${remotePeer.id}")
-            _remotePeerEvent.value = Event(Pair(remotePeer.id, false))
-        }
-    }
-
-    private val remotePeerListener = object : Listener.RemotePeerListener {
-        override fun onAudioTrackReady(remotePeer: RemotePeer, remoteAudioTrack: RemoteAudioTrack) {
-            Log.d(TAG, "onAudioTrackReady ${remotePeer.id} ${remoteAudioTrack.name}")
-        }
-
-        override fun onVideoTrackReady(remotePeer: RemotePeer, remoteVideoTrack: RemoteVideoTrack) {
-            Log.d(TAG, "onVideoTrackReady ${remotePeer.id} ${remoteVideoTrack.name}")
-            if (remoteVideoTrack.name == "camera") {
-                _remoteVideoTrack.value = remoteVideoTrack
+            val peers = mutableListOf<Peer>()
+            _peers.value?.let {
+                peers.addAll(it)
             }
-        }
-
-        override fun onDataTrackReady(remotePeer: RemotePeer, remoteDataTrack: RemoteDataTrack) {
-            Log.d(TAG, "onDataTrackReady ${remotePeer.id} ${remoteDataTrack.name}")
+            peers.remove(remotePeer)
+            _peers.value = peers
         }
     }
 
-    private val remoteDataListener = object : Listener.RemoteDataListener {
-        override fun onMessage(
-            remotePeer: RemotePeer,
-            remoteDataTrack: RemoteDataTrack,
-            byteBuffer: ByteBuffer
-        ) {
-            TODO("Not yet implemented")
+    private val remotePeerListener = object: RemotePeer.Listener {
+        override fun onDataTrackReady(remoteDataTrack: RemoteDataTrack) {
+            remoteDataTrack.registerMessageListener(messageListener)
+        }
+    }
+
+    private val messageListener = object : DataTrack.MessageListener {
+
+        override fun onMessage(remoteDataTrack: RemoteDataTrack, byteBuffer: ByteBuffer) {
+
         }
 
-        override fun onMessage(
-            remotePeer: RemotePeer,
-            remoteDataTrack: RemoteDataTrack,
-            message: String
-        ) {
-            TODO("Not yet implemented")
+        override fun onMessage(remoteDataTrack: RemoteDataTrack, message: String) {
+            Log.d(TAG, "onMessage $message")
         }
     }
 

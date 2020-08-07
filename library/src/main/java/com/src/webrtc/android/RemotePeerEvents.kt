@@ -14,12 +14,12 @@ interface RemotePeerEvents {
     fun onIceDisconnected(id: String)
     fun onConnected(id: String)
     fun onDisconnected(id: String)
-    fun onDataChannel(id: String, label: String)
-    fun onMessage(
-        id: String,
-        label: String,
-        buffer: DataChannel.Buffer
-    )
+//    fun onDataChannel(id: String, label: String)
+//    fun onMessage(
+//        id: String,
+//        label: String,
+//        buffer: DataChannel.Buffer
+//    )
 
     fun onPeerConnectionClose(id: String)
     fun onPeerConnectionStatsReady(

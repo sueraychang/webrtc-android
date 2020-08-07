@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 class LocalDataTrack(
-    override val name: String,
+    override val id: String,
     val options: DataTrackOptions
 ) : DataTrack() {
 

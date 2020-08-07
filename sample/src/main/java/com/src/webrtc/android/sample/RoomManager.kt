@@ -11,9 +11,7 @@ import org.webrtc.IceCandidate
 
 class RoomManager(
     private val context: Context,
-    private val roomListener: Listener.RoomListener,
-    private val remotePeerListener: Listener.RemotePeerListener,
-    private val remoteDataListener: Listener.RemoteDataListener
+    private val roomListener: Listener.RoomListener
 ) {
 
     lateinit var room: Room
@@ -26,30 +24,28 @@ class RoomManager(
     fun connect(roomName: String, selfId: String, iceUrls: List<String>) {
 
         localAudioTrack = LocalAudioTrack("mic", AudioOptions.Builder().build())
-//        val videoConstraints = VideoConstraints.Builder()
-//            .fps(30)
-//            .resolution(Resolution.HD)
-//            .build()
-//        cameraCaptureManager = CameraCaptureManager(this.context)
-//        localVideoTrack = LocalVideoTrack(
-//            "camera",
-//            videoConstraints,
-//            cameraCaptureManager.videoCapturer
-//        )
+        val videoConstraints = VideoConstraints.Builder()
+            .fps(30)
+            .resolution(Resolution.HD)
+            .build()
+        cameraCaptureManager = CameraCaptureManager(this.context)
+        localVideoTrack = LocalVideoTrack(
+            "camera",
+            videoConstraints,
+            cameraCaptureManager.videoCapturer
+        )
         localDataTrack = LocalDataTrack("data", DataTrackOptions.Builder().build())
 
         val connectParameters = ConnectParameters.Builder(roomName, selfId, iceUrls)
             .audioTracks(listOf(localAudioTrack))
-//            .videoTracks(listOf(localVideoTrack))
+            .videoTracks(listOf(localVideoTrack))
             .dataTracks(listOf(localDataTrack))
             .build()
 
         room = Room.connect(
             context,
             connectParameters,
-            roomListener,
-            remotePeerListener,
-            remoteDataListener
+            roomListener
         )
     }
 

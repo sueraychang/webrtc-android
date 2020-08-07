@@ -3,7 +3,7 @@ package com.src.webrtc.android
 import java.util.concurrent.ExecutorService
 
 class RemoteVideoTrack(
-    override val name: String,
+    override val id: String,
     executorService: ExecutorService,
     videoTrack: org.webrtc.VideoTrack
 ) : VideoTrack() {
