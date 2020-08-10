@@ -2,6 +2,7 @@ package com.src.webrtc.android.sample
 
 import android.app.Application
 import android.util.Log
+import android.view.View
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -72,6 +73,44 @@ class MainViewModel(
                 Log.e(TAG, "onCameraSwitchError: $error")
             }
         })
+    }
+
+    fun onSubViewClicked(view: View) {
+        _peers.value?.let {
+            val peers = mutableListOf<Peer>()
+            peers.addAll(it)
+            when(view.id) {
+                R.id.sub_view1 -> {
+                    Log.d(TAG, "on subView1 click")
+                    if (peers.size < 2) {
+                        return@let
+                    } else {
+                        val peer = peers.removeAt(1)
+                        peers.add(0, peer)
+                    }
+                }
+                R.id.sub_view2 -> {
+                    Log.d(TAG, "on subView2 click")
+                    if (peers.size < 3) {
+                        return@let
+                    } else {
+                        val peer = peers.removeAt(2)
+                        peers.add(0, peer)
+                    }
+                }
+                R.id.sub_view3 -> {
+                    Log.d(TAG, "on subView3 click")
+                    if (peers.size < 4) {
+                        return@let
+                    } else {
+                        val peer = peers.removeAt(3)
+                        peers.add(0, peer)
+                    }
+                }
+                else -> { }
+            }
+            _peers.value = peers
+        }
     }
 
     private val signalingListener = object : SignalingManager.SignalingListener {

@@ -17,8 +17,12 @@
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/main_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/sub_view1"
@@ -26,10 +30,11 @@
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="8dp"
-            app:layout_constraintDimensionRatio="1:1"
+            android:onClick="@{viewModel.onSubViewClicked}"
             app:layout_constraintBottom_toTopOf="@+id/options"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintWidth_percent=".2"/>
+            app:layout_constraintWidth_percent=".2" />
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/sub_view2"
@@ -37,10 +42,11 @@
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="8dp"
-            app:layout_constraintDimensionRatio="1:1"
+            android:onClick="@{viewModel.onSubViewClicked}"
             app:layout_constraintBottom_toTopOf="@+id/sub_view1"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintWidth_percent=".2"/>
+            app:layout_constraintWidth_percent=".2" />
 
         <org.webrtc.SurfaceViewRenderer
             android:id="@+id/sub_view3"
@@ -48,10 +54,11 @@
             android:layout_height="0dp"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="8dp"
-            app:layout_constraintDimensionRatio="1:1"
+            android:onClick="@{viewModel.onSubViewClicked}"
             app:layout_constraintBottom_toTopOf="@+id/sub_view2"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintWidth_percent=".2"/>
+            app:layout_constraintWidth_percent=".2" />
 
         <EditText
             android:id="@+id/room_name"
