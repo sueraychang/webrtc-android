@@ -46,9 +46,9 @@ class RemotePeer(
         override fun onLocalDescription(sdp: SessionDescription) {
             handler.post {
                 if (signalingParameters.initiator) {
-                    events.onLocalDescription(id, SIG_TYPE_OFFER, sdp.description)
+                    events.onLocalDescription(id, SDPType.OFFER, sdp.description)
                 } else {
-                    events.onLocalDescription(id, SIG_TYPE_ANSWER, sdp.description)
+                    events.onLocalDescription(id, SDPType.ANSWER, sdp.description)
                 }
             }
         }

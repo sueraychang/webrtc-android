@@ -80,11 +80,11 @@ class Room private constructor(
         roomListener.onDisconnected(this)
     }
 
-    fun onSdpReceived(peerId: String, type: String, sdp: String) {
+    fun onSdpReceived(peerId: String, type: SDPType, sdp: String) {
         Log.d(TAG, "onSdpReceived $peerId $type $sdp")
 
         when (type) {
-            SIG_TYPE_OFFER -> {
+            SDPType.OFFER -> {
                 if (_remotePeers.containsKey(peerId)) {
                     Log.e(TAG, "Already has this remote peer.")
                     return
@@ -93,7 +93,7 @@ class Room private constructor(
                 val remotePeer = RemotePeer(peerId, context, false, localPeer!!, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
                 _remotePeers[peerId] = remotePeer
 
-                val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SIG_TYPE_OFFER), sdp)
+                val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SDPType.OFFER.value), sdp)
                 remotePeer.sdpHandshake()
                 remotePeer.onRemoteDescription(sessionDescription)
 
@@ -104,14 +104,14 @@ class Room private constructor(
                     iceCandidatesRecord.remove(peerId)
                 }
             }
-            SIG_TYPE_ANSWER -> {
+            SDPType.ANSWER -> {
                 val remotePeer = _remotePeers[peerId]
                 if (remotePeer == null) {
                     Log.e(TAG, "Can't find the remote peer.")
                     return
                 }
 
-                val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SIG_TYPE_ANSWER), sdp)
+                val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SDPType.ANSWER.value), sdp)
                 remotePeer.onRemoteDescription(sessionDescription)
             }
         }
@@ -152,7 +152,7 @@ class Room private constructor(
     }
 
     private val remotePeerEvents = object: RemotePeerEvents {
-        override fun onLocalDescription(to: String, type: String, sdp: String) {
+        override fun onLocalDescription(to: String, type: SDPType, sdp: String) {
             handler.post {
                 roomListener.onLocalDescription(to, type, sdp)
             }

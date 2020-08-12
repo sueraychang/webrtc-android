@@ -34,7 +34,7 @@ class MainViewModel(
     fun connectToRoom(roomName: String) {
         Log.d(TAG, "createRoom")
 
-        self = PeerInfo(UUID.randomUUID().toString(), "Harry")
+        self = PeerInfo(UUID.randomUUID().toString())
 
         roomManager = RoomManager(context, roomListener)
         roomManager.connect(roomName, self.id, ICE_URLS)
@@ -79,9 +79,8 @@ class MainViewModel(
         _peers.value?.let {
             val peers = mutableListOf<Peer>()
             peers.addAll(it)
-            when(view.id) {
+            when (view.id) {
                 R.id.sub_view1 -> {
-                    Log.d(TAG, "on subView1 click")
                     if (peers.size < 2) {
                         return@let
                     } else {
@@ -90,7 +89,6 @@ class MainViewModel(
                     }
                 }
                 R.id.sub_view2 -> {
-                    Log.d(TAG, "on subView2 click")
                     if (peers.size < 3) {
                         return@let
                     } else {
@@ -99,7 +97,6 @@ class MainViewModel(
                     }
                 }
                 R.id.sub_view3 -> {
-                    Log.d(TAG, "on subView3 click")
                     if (peers.size < 4) {
                         return@let
                     } else {
@@ -107,7 +104,8 @@ class MainViewModel(
                         peers.add(0, peer)
                     }
                 }
-                else -> { }
+                else -> {
+                }
             }
             _peers.value = peers
         }
@@ -156,16 +154,10 @@ class MainViewModel(
         }
     }
 
-    override fun onCleared() {
-        Log.d(TAG, "onCleared")
-
-        super.onCleared()
-    }
-
     private val roomListener = object : Listener.RoomListener {
-        override fun onLocalDescription(to: String, type: String, sdp: String) {
+        override fun onLocalDescription(to: String, type: SDPType, sdp: String) {
             Log.d(TAG, "onLocalDescription $to $type")
-            signaling.sendSDP(Sdp(self.id, to, type, sdp))
+            signaling.sendSDP(Sdp(self.id, to, type.value, sdp))
         }
 
         override fun onIceCandidate(to: String, iceCandidate: IceCandidate) {
@@ -228,7 +220,7 @@ class MainViewModel(
         }
     }
 
-    private val remotePeerListener = object: RemotePeer.Listener {
+    private val remotePeerListener = object : RemotePeer.Listener {
         override fun onDataTrackReady(remoteDataTrack: RemoteDataTrack) {
             remoteDataTrack.registerMessageListener(messageListener)
         }

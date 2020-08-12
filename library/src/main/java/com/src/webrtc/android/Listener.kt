@@ -7,7 +7,7 @@ interface Listener {
 
     interface RoomListener {
 
-        fun onLocalDescription(to: String, type: String, sdp: String)
+        fun onLocalDescription(to: String, type: SDPType, sdp: String)
 
         fun onIceCandidate(to: String, iceCandidate: IceCandidate)
 

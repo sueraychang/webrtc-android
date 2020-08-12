@@ -12,25 +12,21 @@ class AudioOptions private constructor(builder: Builder) {
         var highPassFilter = true
         var noiseSuppression = true
 
-        /** Attempts to filter away the output signal from later inbound pickup.  */
         fun echoCancellation(echoCancellation: Boolean): Builder {
             this.echoCancellation = echoCancellation
             return this
         }
 
-        /** Adjust the sensitivity of the local mic dynamically.  */
         fun autoGainControl(autoGainControl: Boolean): Builder {
             this.autoGainControl = autoGainControl
             return this
         }
 
-        /** Remove background noise of lower frequences.  */
         fun highPassFilter(highpassFilter: Boolean): Builder {
             highPassFilter = highpassFilter
             return this
         }
 
-        /** Filter out background noise.  */
         fun noiseSuppression(noiseSuppression: Boolean): Builder {
             this.noiseSuppression = noiseSuppression
             return this

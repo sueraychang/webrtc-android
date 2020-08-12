@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate")
 
         viewModel = ViewModelProvider(
             this,
@@ -115,7 +114,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "onDestroy")
         binding.mainView.release()
         binding.subView1.release()
         binding.subView2.release()
@@ -136,7 +134,6 @@ class MainActivity : AppCompatActivity() {
     private fun handlePeers(peers: List<Peer>) {
         for (i in 0 until curPeers.size) {
             if (curPeers[i] != peers.getOrNull(i)) {
-                Log.d(TAG, "first $i")
                 when (val peer = curPeers[i]) {
                     is LocalPeer -> peer.getVideoTracks()["camera"]?.removeRenderer(viewRenderers[i])
                     is RemotePeer -> peer.getVideoTracks()["camera"]?.removeRenderer(viewRenderers[i])
@@ -149,7 +146,6 @@ class MainActivity : AppCompatActivity() {
 
         for (i in peers.indices) {
             if (peers[i] != curPeers.getOrNull(i)) {
-                Log.d(TAG, "second $i")
                 when (val peer = peers[i]) {
                     is LocalPeer -> {
                         peer.getVideoTracks()["camera"]?.addRenderer(viewRenderers[i])
@@ -168,10 +164,8 @@ class MainActivity : AppCompatActivity() {
 
         for (i in peerViews.indices) {
             if (i < peers.size) {
-                Log.d(TAG, "set $i visible")
                 peerViews[i].visibility = View.VISIBLE
             } else {
-                Log.d(TAG, "set $i gone")
                 peerViews[i].visibility = View.GONE
             }
         }

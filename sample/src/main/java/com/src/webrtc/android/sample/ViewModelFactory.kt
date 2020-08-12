@@ -17,7 +17,6 @@ package com.src.webrtc.android.sample
 
 import android.annotation.SuppressLint
 import android.app.Application
-import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 
@@ -53,11 +52,5 @@ class ViewModelFactory private constructor(
                 INSTANCE ?: ViewModelFactory(application)
                     .also { INSTANCE = it }
             }
-
-
-        @VisibleForTesting
-        fun destroyInstance() {
-            INSTANCE = null
-        }
     }
 }

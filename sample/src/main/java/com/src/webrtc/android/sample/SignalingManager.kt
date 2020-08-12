@@ -22,8 +22,8 @@ class SignalingManager(
     }
 
     private val firestore = FirebaseFirestore.getInstance()
+    private val roomRef = firestore.collection(COLLECTION_ROOMS)
     private var roomName = ""
-//    private lateinit var roomRef: DocumentReference
 
     private lateinit var peerJoinListener: ListenerRegistration
     private lateinit var peerLeaveListener: ListenerRegistration
@@ -36,16 +36,16 @@ class SignalingManager(
     fun connectToRoom(roomName: String, self: PeerInfo) {
         Log.d(TAG, "connectToRoom $roomName $self")
         this.roomName = roomName
-        firestore.collection(COLLECTION_ROOMS).document(roomName).get(Source.SERVER)
+        roomRef.document(roomName).get(Source.SERVER)
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     Log.d(TAG, "DocumentSnapshot data: ${document.data}")
                     registerListeners()
                     self.timestamp = System.currentTimeMillis()
-                    getRoomRef().collection(COLLECTION_PEER_JOIN).add(self)
+                    getRoomCollection(COLLECTION_PEER_JOIN).add(self)
                 } else {
                     Log.e(TAG, "No such document")
-                    firestore.collection(COLLECTION_ROOMS).document(roomName)
+                    roomRef.document(roomName)
                         .set(RoomInfo(roomName, System.currentTimeMillis()))
                     isRoomCreatedByMe = true
                     registerListeners()
@@ -53,7 +53,7 @@ class SignalingManager(
             }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "get failed with ", exception)
-                firestore.collection(COLLECTION_ROOMS).document(roomName)
+                roomRef.document(roomName)
                     .set(RoomInfo(roomName, System.currentTimeMillis()))
                 isRoomCreatedByMe = true
                 registerListeners()
@@ -63,7 +63,7 @@ class SignalingManager(
     fun leaveRoom(self: PeerInfo) {
         Log.d(TAG, "leaveRoom $self")
         self.timestamp = System.currentTimeMillis()
-        getRoomRef().collection(COLLECTION_PEER_LEAVE).add(self)
+        getRoomCollection(COLLECTION_PEER_LEAVE).add(self)
         unregisterListeners()
 
         if (isRoomCreatedByMe) {
@@ -73,37 +73,37 @@ class SignalingManager(
 
     private fun closeRoom() {
         Log.d(TAG, "closeRoom")
-        getRoomRef().collection(COLLECTION_PEER_JOIN).get()
+        getRoomCollection(COLLECTION_PEER_JOIN).get()
             .addOnSuccessListener { documents ->
                 for (doc in documents) {
-                    getRoomRef().collection(COLLECTION_PEER_JOIN).document(doc.id).delete()
+                    getRoomCollection(COLLECTION_PEER_JOIN).document(doc.id).delete()
                 }
             }
-        getRoomRef().collection(COLLECTION_PEER_LEAVE).get()
+        getRoomCollection(COLLECTION_PEER_LEAVE).get()
             .addOnSuccessListener { documents ->
                 for (doc in documents) {
-                    getRoomRef().collection(COLLECTION_PEER_LEAVE).document(doc.id).delete()
+                    getRoomCollection(COLLECTION_PEER_LEAVE).document(doc.id).delete()
                 }
             }
-        getRoomRef().collection(COLLECTION_SDP).get()
+        getRoomCollection(COLLECTION_SDP).get()
             .addOnSuccessListener { documents ->
                 for (doc in documents) {
-                    getRoomRef().collection(COLLECTION_SDP).document(doc.id).delete()
+                    getRoomCollection(COLLECTION_SDP).document(doc.id).delete()
                 }
             }
-        getRoomRef().collection(COLLECTION_CANDIDATE).get()
+        getRoomCollection(COLLECTION_CANDIDATE).get()
             .addOnSuccessListener { documents ->
                 for (doc in documents) {
-                    getRoomRef().collection(COLLECTION_CANDIDATE).document(doc.id).delete()
+                    getRoomCollection(COLLECTION_CANDIDATE).document(doc.id).delete()
                 }
             }
-        getRoomRef().collection(COLLECTION_CANDIDATES_REMOVE).get()
+        getRoomCollection(COLLECTION_CANDIDATES_REMOVE).get()
             .addOnSuccessListener { documents ->
                 for (doc in documents) {
-                    getRoomRef().collection(COLLECTION_CANDIDATES_REMOVE).document(doc.id).delete()
+                    getRoomCollection(COLLECTION_CANDIDATES_REMOVE).document(doc.id).delete()
                 }
             }
-        getRoomRef().delete()
+        getRoomDocument().delete()
             .addOnSuccessListener {
                 Log.d(TAG, "DocumentSnapshot successfully deleted!")
             }
@@ -113,19 +113,23 @@ class SignalingManager(
     }
 
     fun sendSDP(sdp: Sdp) {
-        getRoomRef().collection(COLLECTION_SDP).add(sdp)
+        getRoomCollection(COLLECTION_SDP).add(sdp)
     }
 
     fun sendCandidate(sdpCandidate: SdpCandidate) {
-        getRoomRef().collection(COLLECTION_CANDIDATE).add(sdpCandidate)
+        getRoomCollection(COLLECTION_CANDIDATE).add(sdpCandidate)
     }
 
     fun sendCandidatesRemove(sdpCandidatesRemove: SdpCandidatesRemove) {
-        getRoomRef().collection(COLLECTION_CANDIDATES_REMOVE).add(sdpCandidatesRemove)
+        getRoomCollection(COLLECTION_CANDIDATES_REMOVE).add(sdpCandidatesRemove)
     }
 
-    private fun getRoomRef(): DocumentReference {
-        return firestore.collection(COLLECTION_ROOMS).document(roomName)
+    private fun getRoomDocument(): DocumentReference {
+        return roomRef.document(roomName)
+    }
+
+    private fun getRoomCollection(collectionId: String): CollectionReference {
+        return roomRef.document(roomName).collection(collectionId)
     }
 
     private fun registerListeners() {
@@ -145,32 +149,29 @@ class SignalingManager(
     }
 
     private fun registerPeerJoinListener() {
-        Log.d(TAG, "registerPeerJoinListener")
-        peerJoinListener =
-            getRoomRef().collection(COLLECTION_PEER_JOIN).addSnapshotListener { value, e ->
-                if (e != null) {
-                    Log.e(TAG, "listen failed.", e)
-                    return@addSnapshotListener
-                }
+        peerJoinListener = getRoomCollection(COLLECTION_PEER_JOIN).addSnapshotListener { value, e ->
+            if (e != null) {
+                Log.e(TAG, "listen failed.", e)
+                return@addSnapshotListener
+            }
 
-                if (value!!.metadata.hasPendingWrites()) {
-                    return@addSnapshotListener
-                }
+            if (value!!.metadata.hasPendingWrites()) {
+                return@addSnapshotListener
+            }
 
-                for (doc in value.documentChanges) {
-                    when (doc.type) {
-                        DocumentChange.Type.ADDED -> {
-                            listener.onPeerJoinReceived(doc.document.toObject(PeerInfo::class.java))
-                        }
+            for (doc in value.documentChanges) {
+                when (doc.type) {
+                    DocumentChange.Type.ADDED -> {
+                        listener.onPeerJoinReceived(doc.document.toObject(PeerInfo::class.java))
                     }
                 }
             }
+        }
     }
 
     private fun registerPeerLeaveListener() {
-        Log.d(TAG, "registerPeerLeaveListener")
         peerLeaveListener =
-            getRoomRef().collection(COLLECTION_PEER_LEAVE).addSnapshotListener { value, e ->
+            getRoomCollection(COLLECTION_PEER_LEAVE).addSnapshotListener { value, e ->
                 if (e != null) {
                     Log.e(TAG, "listen failed.", e)
                     return@addSnapshotListener
@@ -191,8 +192,7 @@ class SignalingManager(
     }
 
     private fun registerSDPListener() {
-        Log.d(TAG, "registerSDPListener")
-        sdpListener = getRoomRef().collection(COLLECTION_SDP).addSnapshotListener { value, e ->
+        sdpListener = getRoomCollection(COLLECTION_SDP).addSnapshotListener { value, e ->
             if (e != null) {
                 Log.e(TAG, "listen failed.", e)
                 return@addSnapshotListener
@@ -209,9 +209,8 @@ class SignalingManager(
     }
 
     private fun registerCandidateListener() {
-        Log.d(TAG, "registerCandidateListener")
         candidateListener =
-            getRoomRef().collection(COLLECTION_CANDIDATE).addSnapshotListener { value, e ->
+            getRoomCollection(COLLECTION_CANDIDATE).addSnapshotListener { value, e ->
                 if (e != null) {
                     Log.e(TAG, "listen failed.", e)
                     return@addSnapshotListener
@@ -228,9 +227,8 @@ class SignalingManager(
     }
 
     private fun registerCandidatesRemoveListener() {
-        Log.d(TAG, "registerCandidatesRemoveListener")
         candidatesRemoveListener =
-            getRoomRef().collection(COLLECTION_CANDIDATES_REMOVE).addSnapshotListener { value, e ->
+            getRoomCollection(COLLECTION_CANDIDATES_REMOVE).addSnapshotListener { value, e ->
                 if (e != null) {
                     Log.e(TAG, "listen failed.", e)
                     return@addSnapshotListener

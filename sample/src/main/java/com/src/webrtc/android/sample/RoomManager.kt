@@ -61,7 +61,7 @@ class RoomManager(
 
     fun onSdpReceived(sdp: Sdp) {
         Log.d(TAG, "onSdpReceived")
-        room.onSdpReceived(sdp.from, sdp.type, sdp.sdp)
+        room.onSdpReceived(sdp.from, if (sdp.type == "offer") SDPType.OFFER else SDPType.ANSWER, sdp.sdp)
     }
 
     fun onCandidateReceived(sdpCandidate: SdpCandidate) {
