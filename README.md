@@ -6,23 +6,24 @@ _For the WebRTC, go [here](https://webrtc.org/)._
 This is a WebRTC based Android Library to achieve multi-party video chat. 
 The sample application demonstrates how to use the library to perform real-time communication with others.
 
-add some screenshot here
+![preview](https://github.com/sueraychang/webrtc-android/blob/master/screenshot.png)
 
 ## Setup Requirements
 
 Before start, there are some resources needed to run the application.
 
 ### Signaling channel
-Signaling is the communication process. In order for a WebRTC application to connect, the clients need to exchange information using the signaling channel. In the sample, we use Cloud Firestore as the signaling channel to deliver SDP and other messages with each other. _Get started with [Cloud Firestore](https://firebase.google.com/docs/firestore/quickstart)._
+Signaling is the communication process. In order for a WebRTC application to connect, the clients need to exchange information using the signaling channel. In the sample, I use Cloud Firestore as the signaling channel to deliver SDP and other messages with each other. _Get started with [Cloud Firestore](https://firebase.google.com/docs/firestore/quickstart)._
 
 ### ICE server
-To deal with network address translation (NAT) and firewalls, an ICE server is needed. In the sample, we use the STUN servers WebRTC Android example uses.
+To deal with network address translation (NAT) and firewalls, an ICE server is needed. In the sample, I use the STUN servers WebRTC Android example uses.
 ```kotlin
 private val ICE_URLS = listOf(
     "stun:stun1.l.google.com:19302",
     "stun:stun2.l.google.com:19302"
 )
 ```
+Because there is no TURN, please use the wifi network instead of cellular to run the sample.
 
 ## Start Video Chat
 1. Connect to the room.
@@ -33,12 +34,12 @@ room = Room.connect(
     roomListener
 )
 ```
-2. Notify a new peer is comming
+2. Tell the room that a new peer is comming
 ```kotlin
 fun onPeerJoin(peerId: String) {
     // When there is a peer join to the room, 
-    // we create an offer (received from RoomListener.onLocalDescription) to it.
     room.onPeerJoin(peerId)
+    // After calling this an offer is created (received from RoomListener.onLocalDescription).
 }
 ```
 
@@ -61,11 +62,11 @@ val roomListener = object : Listener.RoomListener {
 val roomListener = object : Listener.RoomListener {
     ...
     override fun onConnected(room: Room) {
-        // We can get the local peer instance from room.
+        // We can get the local peer instance from the room.
     }
 
     override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {
-        // The remote peer is connected, start the video chat.
+        // The remote peer is connected, we can start the video chat now.
     }
 
     override fun onPeerDisconnected(room: Room, remotePeer: RemotePeer) {
