@@ -1,11 +1,13 @@
 package com.src.webrtc.android
 
+import android.content.Context
 import android.util.Log
 import java.util.concurrent.ExecutorService
 
 class LocalAudioTrack(
+    context: Context,
     override val id: String,
-    val audioOptions: AudioOptions
+    audioOptions: AudioOptions
 ) : AudioTrack() {
 
     override var executor: ExecutorService? = null
@@ -24,13 +26,19 @@ class LocalAudioTrack(
         }
     }
 
-    fun initInternalAudioTrack(
-        internalAudioTrack: org.webrtc.AudioTrack, executorService: ExecutorService
-    ) {
-        Log.d(TAG, "initInternalAudioTrack")
-        this.internalAudioTrack = internalAudioTrack
-        this.executor = executorService
+    init {
+        MediaFactory.get(context).createAudioTrack(id, audioOptions) {
+            internalAudioTrack = it
+        }
     }
+
+//    fun initInternalAudioTrack(
+//        internalAudioTrack: org.webrtc.AudioTrack, executorService: ExecutorService
+//    ) {
+//        Log.d(TAG, "initInternalAudioTrack")
+//        this.internalAudioTrack = internalAudioTrack
+//        this.executor = executorService
+//    }
 
     companion object {
         private const val TAG = "[rtc]LocalAudioTrack"

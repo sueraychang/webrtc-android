@@ -13,11 +13,10 @@ class RemotePeer(
     context: Context,
     isInitiator: Boolean,
     private val localPeer: LocalPeer,
-    eglBase: EglBase,
     peerConnectionParameters: PeerConnectionParameters,
     executorService: ExecutorService,
     private val events: RemotePeerEvents
-) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
+) : Peer(id, context, peerConnectionParameters, executorService) {
 
     interface Listener {
 

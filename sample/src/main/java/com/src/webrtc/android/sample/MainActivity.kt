@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: MainViewModel
 
     private val curPeers = mutableListOf<Peer>()
-    private val peerViews = mutableListOf<SurfaceViewRenderer>()
+    private val peerViews = mutableListOf<VideoView>()
     private val viewRenderers =
         listOf(VideoRenderer(), VideoRenderer(), VideoRenderer(), VideoRenderer())
 
@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
             if (it != null) {
                 binding.options.visibility = View.VISIBLE
                 binding.mainView.apply {
-                    init(it.eglBase.eglBaseContext, null)
+                    init(null)
                     setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
                     setEnableHardwareScaler(false)
                 }
@@ -122,9 +122,9 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun initSubView(room: Room, view: SurfaceViewRenderer) {
+    private fun initSubView(room: Room, view: VideoView) {
         view.apply {
-            init(room.eglBase.eglBaseContext, null)
+            init(null)
             setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
             setZOrderMediaOverlay(true)
             setEnableHardwareScaler(true)

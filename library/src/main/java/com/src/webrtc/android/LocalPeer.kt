@@ -9,11 +9,10 @@ import java.util.concurrent.ExecutorService
 class LocalPeer(
     id: String,
     context: Context,
-    eglBase: EglBase,
     connectionParameters: ConnectParameters,
     peerConnectionParameters: PeerConnectionParameters,
     executorService: ExecutorService
-) : Peer(id, context, eglBase, peerConnectionParameters, executorService) {
+) : Peer(id, context, peerConnectionParameters, executorService) {
 
     private val audioTracks = mutableMapOf<String, LocalAudioTrack>()
     private val videoTracks = mutableMapOf<String, LocalVideoTrack>()
@@ -67,57 +66,57 @@ class LocalPeer(
     }
 
     override fun createLocalAudioTracks() {
-        if (audioTracks.isEmpty()) {
-            return
-        }
-
-        for ((name, track) in audioTracks) {
-            val constraints = MediaConstraints()
-
-            if (!track.audioOptions.echoCancellation) {
-                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"))
-            }
-            if (!track.audioOptions.autoGainControl) {
-                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"))
-            }
-            if (!track.audioOptions.highPassFilter) {
-                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"))
-            }
-            if (!track.audioOptions.noiseSuppression) {
-                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"))
-            }
-            audioSource = factory!!.createAudioSource(constraints)
-            val internalTrack = factory!!.createAudioTrack(name, audioSource)
-            track.initInternalAudioTrack(internalTrack, executor)
-        }
+//        if (audioTracks.isEmpty()) {
+//            return
+//        }
+//
+//        for ((name, track) in audioTracks) {
+//            val constraints = MediaConstraints()
+//
+//            if (!track.audioOptions.echoCancellation) {
+//                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"))
+//            }
+//            if (!track.audioOptions.autoGainControl) {
+//                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"))
+//            }
+//            if (!track.audioOptions.highPassFilter) {
+//                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"))
+//            }
+//            if (!track.audioOptions.noiseSuppression) {
+//                constraints.mandatory.add(MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"))
+//            }
+//            audioSource = factory!!.createAudioSource(constraints)
+//            val internalTrack = factory!!.createAudioTrack(name, audioSource)
+//            track.initInternalAudioTrack(internalTrack, executor)
+//        }
     }
 
     override fun createLocalVideoTracks() {
-        Log.d(TAG, "createLocalVideoTracks")
-        if (videoTracks.isEmpty()) {
-            return
-        }
-
-        for ((name, track) in videoTracks) {
-            surfaceTextureHelper =
-                SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
-            videoSource = factory!!.createVideoSource(track.videoCapturer.isScreencast)
-            track.videoCapturer.initialize(
-                surfaceTextureHelper,
-                context,
-                videoSource!!.capturerObserver
-            )
-            val width = track.videoConstraints.resolution.width
-            val height = track.videoConstraints.resolution.height
-            val fps = track.videoConstraints.fps
-            track.videoCapturer.startCapture(width, height, fps)
-            val internalTrack = factory!!.createVideoTrack(name, videoSource)
-            track.initInternalVideoTrack(
-                internalTrack,
-                executor,
-                surfaceTextureHelper!!
-            )
-        }
+//        Log.d(TAG, "createLocalVideoTracks")
+//        if (videoTracks.isEmpty()) {
+//            return
+//        }
+//
+//        for ((name, track) in videoTracks) {
+//            surfaceTextureHelper =
+//                SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+//            videoSource = factory!!.createVideoSource(track.videoCapturer.isScreencast)
+//            track.videoCapturer.initialize(
+//                surfaceTextureHelper,
+//                context,
+//                videoSource!!.capturerObserver
+//            )
+//            val width = track.videoConstraints.resolution.width
+//            val height = track.videoConstraints.resolution.height
+//            val fps = track.videoConstraints.fps
+//            track.videoCapturer.startCapture(width, height, fps)
+//            val internalTrack = factory!!.createVideoTrack(name, videoSource)
+//            track.initInternalVideoTrack(
+//                internalTrack,
+//                executor,
+//                surfaceTextureHelper!!
+//            )
+//        }
     }
 
     override fun addLocalAudioTracks() {

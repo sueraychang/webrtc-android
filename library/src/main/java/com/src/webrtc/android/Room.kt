@@ -8,6 +8,7 @@ import org.appspot.apprtc.PeerConnectionClient
 import org.webrtc.*
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class Room private constructor(
@@ -15,10 +16,6 @@ class Room private constructor(
     private val connectParameters: ConnectParameters,
     private val roomListener: Listener.RoomListener
 ){
-
-    val eglBase: EglBase = EglBase.create()
-
-    private val executorService = Executors.newSingleThreadExecutor()
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -28,8 +25,8 @@ class Room private constructor(
 
     var localPeer: LocalPeer? = null
 
-    val remotePeers: Map<String, RemotePeer>
-        get() = _remotePeers
+//    val remotePeers: Map<String, RemotePeer>
+//        get() = _remotePeers
     private val _remotePeers = mutableMapOf<String, RemotePeer>()
 
     fun connect() {
@@ -37,11 +34,11 @@ class Room private constructor(
 
         peerConnectionParameters = ConferenceParameters(context).getPeerConnectionParameters(connectParameters)
 
-        localPeer = LocalPeer(connectParameters.localPeerId, context, eglBase, connectParameters, peerConnectionParameters, executorService)
+        localPeer = LocalPeer(connectParameters.localPeerId, context, connectParameters, peerConnectionParameters, ExecutorProvider.get())
 
-        _remotePeers.forEach { (id, peer) ->
-            Log.d(TAG, "remotePeer $id $peer")
-        }
+//        _remotePeers.forEach { (id, peer) ->
+//            Log.d(TAG, "remotePeer $id $peer")
+//        }
 
         roomListener.onConnected(this)
     }
@@ -54,7 +51,7 @@ class Room private constructor(
             return
         }
 
-        val remotePeer = RemotePeer(peerId, context, true, localPeer!!, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
+        val remotePeer = RemotePeer(peerId, context, true, localPeer!!, peerConnectionParameters, ExecutorProvider.get(), remotePeerEvents)
         _remotePeers[peerId] = remotePeer
 
         remotePeer.sdpHandshake()
@@ -90,7 +87,7 @@ class Room private constructor(
                     return
                 }
 
-                val remotePeer = RemotePeer(peerId, context, false, localPeer!!, eglBase, peerConnectionParameters, executorService, remotePeerEvents)
+                val remotePeer = RemotePeer(peerId, context, false, localPeer!!, peerConnectionParameters, ExecutorProvider.get(), remotePeerEvents)
                 _remotePeers[peerId] = remotePeer
 
                 val sessionDescription = SessionDescription(SessionDescription.Type.fromCanonicalForm(SDPType.OFFER.value), sdp)
@@ -147,8 +144,8 @@ class Room private constructor(
 
     fun release() {
         Log.d(TAG, "release")
-        executorService.shutdown()
-        eglBase.release()
+        MediaFactory.get(context).release()
+        ExecutorProvider.release()
     }
 
     private val remotePeerEvents = object: RemotePeerEvents {
@@ -188,59 +185,12 @@ class Room private constructor(
                 }
 
                 roomListener.onPeerConnected(this@Room, remotePeer)
-//                remotePeer.getAudioTracks().forEach { (_, track) ->
-//                    remotePeerListener.onAudioTrackReady(remotePeer, track)
-//                }
-//                remotePeer.getVideoTracks().forEach { (_, track) ->
-//                    remotePeerListener.onVideoTrackReady(remotePeer, track)
-//                }
             }
         }
 
         override fun onDisconnected(id: String) {
             Log.d(TAG, "onDisconnected $id")
         }
-
-//        override fun onDataChannel(id: String, label: String) {
-//            handler.post {
-//                Log.d(TAG, "onDataChannel $id $label")
-//                val remotePeer = _remotePeers[id]
-//                if (remotePeer == null) {
-//                    Log.e(TAG, "Remote peer $id not found")
-//                    return@post
-//                }
-//
-//                remotePeer.getDataTracks()[label]?.let {
-//                    remotePeerListener.onDataTrackReady(remotePeer, it)
-//                }
-//            }
-//        }
-
-//        override fun onMessage(id: String, label: String, buffer: DataChannel.Buffer) {
-//            val copiedBuffer = DataChannel.Buffer(cloneByteBuffer(buffer.data), buffer.binary)
-//            handler.post {
-//                Log.d(TAG, "onMessage, id: $id, label: $label")
-//
-//                val remotePeer = _remotePeers[id]
-//                if (remotePeer == null) {
-//                    Log.e(TAG, "Remote peer $id not found")
-//                    return@post
-//                }
-//
-//                remotePeer.getDataTracks()[label]?.let {
-//                    if (!copiedBuffer.binary) {
-//                        val data = copiedBuffer.data
-//                        val bytes = ByteArray(data.capacity())
-//                        data.get(bytes)
-//                        val msg = String(bytes, Charset.forName("UTF-8"))
-//                        Log.d(TAG, "onMessage: $msg")
-//                        remoteDataListener.onMessage(remotePeer, it, msg)
-//                    } else {
-//                        remoteDataListener.onMessage(remotePeer, it, copiedBuffer.data)
-//                    }
-//                }
-//            }
-//        }
 
         override fun onPeerConnectionClose(id: String) {
             Log.d(TAG, "onPeerConnectionClose $id")
@@ -273,16 +223,8 @@ class Room private constructor(
 
             roomListener.onPeerDisconnected(this, remotePeer)
             remotePeer.release()
-        }
-    }
 
-    private fun cloneByteBuffer(original: ByteBuffer): ByteBuffer {
-        val clone = ByteBuffer.allocate(original.capacity())
-        original.rewind()
-        clone.put(original)
-        original.rewind()
-        clone.flip()
-        return clone
+        }
     }
 
     companion object {
