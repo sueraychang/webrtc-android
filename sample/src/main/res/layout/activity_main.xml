@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
-        <org.webrtc.SurfaceViewRenderer
+        <com.src.webrtc.android.VideoView
             android:id="@+id/main_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -24,7 +24,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-        <org.webrtc.SurfaceViewRenderer
+        <com.src.webrtc.android.VideoView
             android:id="@+id/sub_view1"
             android:layout_width="0dp"
             android:layout_height="0dp"
@@ -36,7 +36,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintWidth_percent=".2" />
 
-        <org.webrtc.SurfaceViewRenderer
+        <com.src.webrtc.android.VideoView
             android:id="@+id/sub_view2"
             android:layout_width="0dp"
             android:layout_height="0dp"
@@ -48,7 +48,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintWidth_percent=".2" />
 
-        <org.webrtc.SurfaceViewRenderer
+        <com.src.webrtc.android.VideoView
             android:id="@+id/sub_view3"
             android:layout_width="0dp"
             android:layout_height="0dp"

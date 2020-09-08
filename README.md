@@ -78,7 +78,12 @@ val roomListener = object : Listener.RoomListener {
 ## Multi-Party
 
 Much the same as 1-to-1, you only need to decide who is the offerer and who is the answerer.  
-In the sample, when there is a new peer join to the room, all the peers already in the room will be the offerer, and the new peer should be the answerer.  
+In the sample, when there is a new peer join to the room, all the peers already in the room will be the offerer, and the new peer should be the answerer.
+
+## Download
+```groovy
+implementation 'com.src.webrtc.android:src-webrtc-android:0.9.2'
+```
 
 ## Examples
 

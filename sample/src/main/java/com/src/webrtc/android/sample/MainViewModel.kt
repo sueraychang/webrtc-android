@@ -196,6 +196,7 @@ class MainViewModel(
         override fun onDisconnected(room: Room) {
             Log.d(TAG, "onDisconnected")
             _room.value = null
+            room.release()
         }
 
         override fun onPeerConnected(room: Room, remotePeer: RemotePeer) {

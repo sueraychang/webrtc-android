@@ -15,6 +15,9 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import androidx.annotation.Nullable;
 import android.util.Log;
+
+import com.src.webrtc.android.MediaFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -398,15 +401,17 @@ public abstract class PeerConnectionClient {
 
     Log.d(TAG, "Preferred video codec: " + getSdpVideoCodecName(peerConnectionParameters));
 
-    final String fieldTrials = getFieldTrials(peerConnectionParameters);
-    executor.execute(() -> {
-      Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
-      PeerConnectionFactory.initialize(
-          PeerConnectionFactory.InitializationOptions.builder(appContext)
-              .setFieldTrials(fieldTrials)
-              .setEnableInternalTracer(true)
-              .createInitializationOptions());
-    });
+    // +++ Robin: Initialize factory in MediaFactory +++
+//    final String fieldTrials = getFieldTrials(peerConnectionParameters);
+//    executor.execute(() -> {
+//      Log.d(TAG, "Initialize WebRTC. Field trials: " + fieldTrials);
+//      PeerConnectionFactory.initialize(
+//          PeerConnectionFactory.InitializationOptions.builder(appContext)
+//              .setFieldTrials(fieldTrials)
+//              .setEnableInternalTracer(true)
+//              .createInitializationOptions());
+//    });
+    // --- Robin: Initialize factory in MediaFactory ---
   }
 
   /**
@@ -516,34 +521,36 @@ public abstract class PeerConnectionClient {
       }
     }
 
-    final AudioDeviceModule adm = createJavaAudioDevice();
-
-    // Create peer connection factory.
-    if (options != null) {
-      Log.d(TAG, "Factory networkIgnoreMask option: " + options.networkIgnoreMask);
-    }
-    final boolean enableH264HighProfile =
-        VIDEO_CODEC_H264_HIGH.equals(peerConnectionParameters.videoCodec);
-    final VideoEncoderFactory encoderFactory;
-    final VideoDecoderFactory decoderFactory;
-
-    if (peerConnectionParameters.videoCodecHwAcceleration) {
-      encoderFactory = new DefaultVideoEncoderFactory(
-          rootEglBase.getEglBaseContext(), true /* enableIntelVp8Encoder */, enableH264HighProfile);
-      decoderFactory = new DefaultVideoDecoderFactory(rootEglBase.getEglBaseContext());
-    } else {
-      encoderFactory = new SoftwareVideoEncoderFactory();
-      decoderFactory = new SoftwareVideoDecoderFactory();
-    }
-
-    factory = PeerConnectionFactory.builder()
-                  .setOptions(options)
-                  .setAudioDeviceModule(adm)
-                  .setVideoEncoderFactory(encoderFactory)
-                  .setVideoDecoderFactory(decoderFactory)
-                  .createPeerConnectionFactory();
-    Log.d(TAG, "Peer connection factory created.");
-    adm.release();
+    // +++ Robin: create factory in MediaFactory +++
+//    final AudioDeviceModule adm = createJavaAudioDevice();
+//
+//    // Create peer connection factory.
+//    if (options != null) {
+//      Log.d(TAG, "Factory networkIgnoreMask option: " + options.networkIgnoreMask);
+//    }
+//    final boolean enableH264HighProfile =
+//        VIDEO_CODEC_H264_HIGH.equals(peerConnectionParameters.videoCodec);
+//    final VideoEncoderFactory encoderFactory;
+//    final VideoDecoderFactory decoderFactory;
+//
+//    if (peerConnectionParameters.videoCodecHwAcceleration) {
+//      encoderFactory = new DefaultVideoEncoderFactory(
+//          rootEglBase.getEglBaseContext(), true /* enableIntelVp8Encoder */, enableH264HighProfile);
+//      decoderFactory = new DefaultVideoDecoderFactory(rootEglBase.getEglBaseContext());
+//    } else {
+//      encoderFactory = new SoftwareVideoEncoderFactory();
+//      decoderFactory = new SoftwareVideoDecoderFactory();
+//    }
+//
+//    factory = PeerConnectionFactory.builder()
+//                  .setOptions(options)
+//                  .setAudioDeviceModule(adm)
+//                  .setVideoEncoderFactory(encoderFactory)
+//                  .setVideoDecoderFactory(decoderFactory)
+//                  .createPeerConnectionFactory();
+//    Log.d(TAG, "Peer connection factory created.");
+//    adm.release();
+    // --- Robin: create factory in MediaFactory ---
   }
 
   AudioDeviceModule createJavaAudioDevice() {
@@ -682,10 +689,12 @@ public abstract class PeerConnectionClient {
   }
 
   private void createPeerConnectionInternal() {
-    if (factory == null || isError) {
-      Log.e(TAG, "Peerconnection factory is not created");
-      return;
-    }
+    // +++ Robin: create peer connection using mediaFactory +++
+//    if (factory == null || isError) {
+//      Log.e(TAG, "Peerconnection factory is not created");
+//      return;
+//    }
+    // --- Robin: create peer connection using mediaFactory ---
     Log.d(TAG, "Create peer connection.");
 
     queuedRemoteCandidates = new ArrayList<>();
@@ -704,7 +713,8 @@ public abstract class PeerConnectionClient {
     rtcConfig.enableDtlsSrtp = !peerConnectionParameters.loopback;
     rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
 
-    peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
+    peerConnection = MediaFactory.get(appContext).createPeerConnection(rtcConfig, pcObserver);
+//    peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
 
     copyPeerConnection(peerConnection);
 
@@ -908,7 +918,7 @@ public abstract class PeerConnectionClient {
       factory = null;
     }
 
-    rootEglBase.release();
+//    rootEglBase.release();
     PeerConnectionFactory.stopInternalTracingCapture();
     PeerConnectionFactory.shutdownInternalTracer();
 
@@ -1408,7 +1418,7 @@ public abstract class PeerConnectionClient {
   }
 
   // Implementation detail: observe ICE & stream changes and react accordingly.
-  private class PCObserver implements PeerConnection.Observer {
+  public class PCObserver implements PeerConnection.Observer {
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
       executor.execute(() -> {
